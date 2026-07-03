@@ -27,9 +27,10 @@ The core flow:
 
 ```txt
 Admin dashboard
-  -> create chatbot
   -> configure LLM provider
-  -> add knowledge sources
+  -> create knowledge base
+  -> add and index knowledge sources
+  -> create chatbot with a chat provider and knowledge base
   -> inspect chunks and RAG traces
   -> generate public embed key
   -> install widget on company website
@@ -51,23 +52,27 @@ The first MVP should prove one thing:
 
 1. Admin starts the app locally or on a server.
 2. Admin signs in to the dashboard.
-3. Admin creates a chatbot.
-4. Admin configures an OpenAI-compatible LLM provider.
-5. Admin adds a text or URL knowledge source.
+3. Admin configures chat and embedding Provider capabilities.
+4. Admin creates a Knowledge Base with one embedding Provider.
+5. Admin adds a text or URL Knowledge Source to the Knowledge Base.
 6. Heho chunks the content, embeds it, and stores it.
-7. Admin inspects indexed chunks in the dashboard.
-8. Admin generates a public embed key.
-9. Company website installs the chatbot widget.
-10. Visitor asks a question.
-11. Backend retrieves relevant chunks.
-12. LLM answers with source citations.
-13. Dashboard shows chat logs, retrieved chunks, prompt preview, and token usage.
+7. Admin creates a Chatbot with one chat Provider and one Knowledge Base.
+8. Admin inspects indexed chunks in the dashboard.
+9. Admin generates a public Embed Key.
+10. Company website installs the Chatbot widget.
+11. A visitor asks a question.
+12. The backend embeds the question with the Knowledge Base's embedding model
+    and retrieves relevant chunks.
+13. The Chatbot's chat model answers with source citations.
+14. The Dashboard shows chat logs, retrieved chunks, prompt preview, and token
+    usage.
 
 ### MVP Includes
 
 - Dashboard authentication
 - Organization and member foundation
 - Chatbot creation and configuration
+- Reusable Knowledge Bases
 - OpenAI-compatible LLM provider configuration
 - Text and URL knowledge sources
 - Chunking and embeddings
@@ -154,32 +159,46 @@ packages/
 ### Organization
 
 Heho uses the Better Auth organization plugin as its company and tenant model.
-An organization owns chatbots, knowledge sources, provider configs, embed keys,
-chat logs, and usage. Better Auth members link dashboard users to organizations;
-Heho does not maintain an additional tenant or membership model.
+An Organization owns Provider configs, Knowledge Bases, Chatbots, Embed Keys,
+chat logs, and usage. Better Auth members link Dashboard users to
+Organizations; Heho does not maintain an additional tenant or membership
+model.
 
 ### Chatbot
 
-A chatbot is the website-facing AI assistant. It contains system instructions, model defaults, theme settings, and retrieval settings.
+A Chatbot is the website-facing AI assistant. It contains system instructions,
+theme settings, retrieval settings, one chat Provider, and one Knowledge Base.
+Multiple Chatbots can reuse the same Knowledge Base and its indexed vectors.
 
 ### LLM Provider
 
-An LLM provider stores the configuration needed to call a model provider.
-
-The MVP should support OpenAI-compatible configuration:
+A Provider stores one capability-specific configuration needed to call a model
+provider:
 
 ```txt
+capability: chat | embedding
+provider
 base_url
 api_key
-chat_model
-embedding_model
+model
 ```
 
 Provider keys must be encrypted at rest and never exposed to the browser widget.
 
+### Knowledge Base
+
+A Knowledge Base is an Organization-owned, reusable collection of Knowledge
+Sources. It selects one embedding Provider, and every source chunk and visitor
+question in that Knowledge Base must use the same embedding model and vector
+space.
+
+A Knowledge Base can contain many Knowledge Sources and can be reused by many
+Chatbots. A Chatbot uses exactly one Knowledge Base in the MVP.
+
 ### Knowledge Source
 
-A knowledge source is content that the chatbot can retrieve from.
+A Knowledge Source is one original piece of content inside a Knowledge Base.
+Sources belong to the Knowledge Base rather than directly to a Chatbot.
 
 MVP source types:
 
@@ -282,8 +301,11 @@ member
 
 chatbot
 llm_provider
+knowledge_base
 knowledge_source
 knowledge_chunk
+knowledge_index
+chunk_embedding
 
 embed_key
 chat_session
@@ -292,25 +314,118 @@ rag_trace
 usage_event
 ```
 
-High-level relationships:
+Current and planned tenant relationships:
 
-```txt
-user
-  -> member
-      -> organization
-          -> chatbot
-          -> llm_provider
-          -> knowledge_source
-              -> knowledge_chunk
-          -> embed_key
-          -> chat_session
-              -> chat_message
-              -> rag_trace
-          -> usage_event
+```mermaid
+erDiagram
+    ORGANIZATION ||--o{ MEMBER : has
+    ORGANIZATION ||--o{ LLM_PROVIDER : configures
+    ORGANIZATION ||--o{ KNOWLEDGE_BASE : owns
+    ORGANIZATION ||--o{ CHATBOT : owns
+
+    LLM_PROVIDER ||--o{ KNOWLEDGE_BASE : "embeds for"
+    LLM_PROVIDER ||--o{ CHATBOT : "chats for"
+    KNOWLEDGE_BASE ||--o{ KNOWLEDGE_SOURCE : contains
+    KNOWLEDGE_BASE ||--o{ CHATBOT : "is reused by"
+
+    KNOWLEDGE_SOURCE ||--o{ KNOWLEDGE_CHUNK : chunks
+    KNOWLEDGE_SOURCE ||--o{ KNOWLEDGE_INDEX : indexes
+    KNOWLEDGE_INDEX ||--o{ CHUNK_EMBEDDING : contains
+    KNOWLEDGE_CHUNK ||--o{ CHUNK_EMBEDDING : "is represented by"
+
+    CHATBOT ||--o{ EMBED_KEY : deploys
+    CHATBOT ||--o{ CHAT_SESSION : serves
+    CHAT_SESSION ||--o{ CHAT_MESSAGE : contains
+    CHAT_SESSION ||--o{ RAG_TRACE : records
+
+    ORGANIZATION {
+        text id PK
+    }
+    LLM_PROVIDER {
+        text id PK
+        text organization_id FK
+        text capability
+        text provider
+        text model
+        text encrypted_api_key
+    }
+    KNOWLEDGE_BASE {
+        text id PK
+        text organization_id FK
+        text embedding_provider_id FK
+        text name
+    }
+    CHATBOT {
+        text id PK
+        text organization_id FK
+        text chat_provider_id FK
+        text knowledge_base_id FK
+        text name
+        text system_instructions
+    }
+    KNOWLEDGE_SOURCE {
+        text id PK
+        text organization_id FK
+        text knowledge_base_id FK
+        text title
+        text raw_content
+        text status
+    }
+    KNOWLEDGE_CHUNK {
+        text id PK
+        text organization_id FK
+        text source_id FK
+        integer chunk_index
+        text content
+    }
+    KNOWLEDGE_INDEX {
+        text id PK
+        text organization_id FK
+        text knowledge_base_id FK
+        text source_id FK
+        text embedding_provider_id FK
+        text model_snapshot
+        integer dimensions
+        text status
+    }
+    CHUNK_EMBEDDING {
+        text id PK
+        text organization_id FK
+        text knowledge_index_id FK
+        text chunk_id FK
+        vector embedding
+    }
+    EMBED_KEY {
+        text id PK
+        text organization_id FK
+        text chatbot_id FK
+        text key_hash
+    }
+    CHAT_SESSION {
+        text id PK
+        text organization_id FK
+        text chatbot_id FK
+    }
+    CHAT_MESSAGE {
+        text id PK
+        text organization_id FK
+        text chatbot_id FK
+        text session_id FK
+        text role
+        text content
+    }
+    RAG_TRACE {
+        text id PK
+        text organization_id FK
+        text chatbot_id FK
+        text session_id FK
+        jsonb retrieved_chunks
+    }
 ```
 
-The Better Auth organization is the tenant boundary. All chatbot, knowledge,
-conversation, and usage data belongs to an organization.
+The Better Auth Organization is the tenant boundary. Direct tenant keys and
+tenant-scoped foreign keys prevent a Provider, Knowledge Base, Chatbot, or RAG
+record from being associated across Organizations.
 
 ## Widget Integration
 
@@ -544,9 +659,10 @@ Planned first milestone:
 ```txt
 Docker Compose self-host MVP
   -> dashboard login
-  -> create chatbot
   -> configure provider
-  -> add text/URL source
+  -> create knowledge base
+  -> add text/URL source and index it
+  -> create chatbot
   -> inspect chunks
   -> embed widget
   -> answer visitor questions with citations
@@ -562,9 +678,10 @@ flow:
 self-host Docker stack
   -> admin dashboard
   -> configure LLM provider
-  -> create chatbot
+  -> create knowledge base
   -> add text/URL knowledge source
   -> index into pgvector
+  -> create chatbot with the knowledge base
   -> generate public embed key
   -> install widget
   -> visitor asks question
@@ -688,7 +805,8 @@ Chatbot API and dashboard work are intentionally deferred to Day 5.
 
 ### Day 5: Chatbot Setup
 
-- [x] Update the `chatbot` schema for capability-specific Provider references:
+- [x] Add the initial `chatbot` schema with capability-specific Provider
+      references:
   - [x] `chat_provider_id`
   - [x] `embedding_provider_id`
 - [x] Remove duplicated chat and embedding model fields from `chatbot`; each
@@ -721,6 +839,10 @@ Chatbot API and dashboard work are intentionally deferred to Day 5.
   - [x] `pnpm check`
   - [x] `pnpm typecheck`
   - [x] Chatbot API, authorization, capability, and tenant-isolation tests.
+
+Day 7 supersedes the initial embedding ownership above: Embedding Providers now
+belong to reusable Knowledge Bases, and Chatbots reference a Knowledge Base
+instead of storing `embedding_provider_id`.
 
 ### Day 6: Embed Keys and Domain Allowlist
 
@@ -765,42 +887,98 @@ Chatbot API and dashboard work are intentionally deferred to Day 5.
   - [x] `pnpm typecheck`
   - [ ] Relevant embed key and tenant-isolation tests.
 
-### Day 7: Thin End-to-End Text RAG Slice
+### Day 7: Reusable Knowledge Base Foundation
 
-- [ ] Add the minimal schemas and migrations for:
+- [x] Add the Organization-owned `knowledge_base` schema.
+- [x] Give each Knowledge Base one required embedding Provider.
+- [x] Enforce tenant-safe Provider, Knowledge Base, Chatbot, and Embed Key
+      relationships with composite constraints.
+- [x] Move embedding ownership from `chatbot.embedding_provider_id` to
+      `knowledge_base.embedding_provider_id`.
+- [x] Replace the Chatbot creation input `embeddingProviderId` with
+      `knowledgeBaseId`.
+- [x] Keep one required chat Provider per Chatbot.
+- [x] Add authenticated Knowledge Base APIs:
+  - [x] `GET /knowledge-bases`
+  - [x] `POST /knowledge-bases`
+- [x] Derive `organizationId` from authenticated membership and reject
+      cross-Organization or non-embedding Provider references.
+- [x] Allow all Organization members to list Knowledge Bases and restrict
+      creation to the Organization owner.
+- [x] Add the `/knowledge-bases` Dashboard route with:
+  - [x] Organization-scoped TanStack Query cache keys.
+  - [x] Empty, loading, error, and success states.
+  - [x] Owner-only responsive creation form.
+  - [x] Embedding Provider selection.
+  - [x] Contextual navigation to `/providers` when no embedding Provider exists.
+- [x] Refactor the Chatbot Dashboard:
+  - [x] Replace the Embedding Provider field with a Knowledge Base field.
+  - [x] Load Knowledge Bases in the Chatbot route.
+  - [x] Show the selected Knowledge Base on each Chatbot card.
+  - [x] Guide owners to create missing Chat Providers or Knowledge Bases.
+- [x] Preserve `/providers` as the only place that stores Provider credentials,
+      Base URLs, and model configuration.
+- [x] Acceptance:
+  - [x] An owner can create a Knowledge Base before creating a Chatbot.
+  - [x] Multiple Chatbots can reference the same Knowledge Base.
+  - [x] A Chatbot uses its Knowledge Base's embedding model for future
+        retrieval and its own chat Provider for answer generation.
+  - [x] Members can view Knowledge Bases but cannot create them.
+  - [x] Provider credentials and Organization IDs are not exposed by Knowledge
+        Base responses.
+- [x] Run:
+  - [x] `pnpm check`
+  - [x] `pnpm typecheck`
+  - [x] `pnpm build`
+  - [ ] Knowledge Base API authorization and tenant-isolation integration
+        tests.
+
+### Day 8: Thin End-to-End Text RAG Slice
+
+- [ ] Add the minimal schemas for:
   - [ ] `knowledge_source`
   - [ ] `knowledge_chunk`
+  - [ ] `knowledge_index`
+  - [ ] `chunk_embedding`
   - [ ] `chat_session`
   - [ ] `chat_message`
   - [ ] `rag_trace`
-- [ ] Add a minimal text knowledge source API and dashboard form.
+- [ ] Add a Knowledge Base-scoped text source API and Dashboard form.
 - [ ] Support `text` sources.
 - [ ] Implement deterministic chunking in `packages/rag`.
-- [ ] Generate embeddings through the configured OpenAI-compatible provider.
+- [ ] Generate Source embeddings through the Knowledge Base's configured
+      embedding Provider.
 - [ ] Store chunks in PostgreSQL and vectors in pgvector.
-- [ ] Mark sources as `ready` or `failed`.
-- [ ] Embed visitor questions.
-- [ ] Retrieve top chunks from pgvector.
-- [ ] Map retrieved chunks back to sources.
+- [ ] Keep Source chunks independent from model-specific Chunk Embeddings.
+- [ ] Save Provider, model, dimensions, and Source revision snapshots on each
+      Knowledge Index.
+- [ ] Mark Sources as `ready` or `failed` and Indexes as `active` or `failed`.
+- [ ] Resolve a Chatbot's Knowledge Base and embed visitor questions with the
+      same Provider and model used by its active Indexes.
+- [ ] Retrieve top chunks only from the selected Knowledge Base.
+- [ ] Map retrieved chunks back to Sources.
 - [ ] Assemble the prompt in `packages/rag`.
-- [ ] Include source titles and citation markers in the prompt context.
-- [ ] Call the configured provider and save the visitor and assistant messages.
-- [ ] Save a minimal RAG trace in the same request.
-- [ ] Add an authenticated dashboard test action that returns:
+- [ ] Include Source titles and citation markers in the prompt context.
+- [ ] Call the Chatbot's chat Provider and save visitor and assistant messages.
+- [ ] Save a minimal RAG Trace in the same request lifecycle.
+- [ ] Add an authenticated Dashboard test action that returns:
   - [ ] `answer`
   - [ ] `citations`
   - [ ] `traceId`
-- [ ] Show indexed chunks and the resulting trace in the dashboard.
+- [ ] Show indexed chunks and the resulting Trace in the Dashboard.
 - [ ] Acceptance:
-  - [ ] An owner can add text, index it, ask a question, and receive a cited answer.
-  - [ ] The answer, retrieved chunks, and trace belong to the same organization.
+  - [ ] An owner can add text to a Knowledge Base, index it, ask a question
+        through a Chatbot, and receive a cited answer.
+  - [ ] Multiple Chatbots reuse the same Knowledge Base vectors.
+  - [ ] The answer, retrieved chunks, and Trace belong to the same Organization
+        and Knowledge Base.
   - [ ] Failed ingestion exposes an actionable error.
 - [ ] Run:
   - [ ] `pnpm check`
   - [ ] `pnpm typecheck`
-  - [ ] RAG tests with deterministic provider and embedding adapters.
+  - [ ] RAG tests with deterministic Provider and embedding adapters.
 
-### Day 8: Background Ingestion and URL Adapter
+### Day 9: Background Ingestion and URL Adapter
 
 - [ ] Add BullMQ ingestion queue and worker processing.
 - [ ] Move text ingestion behind the queue without changing its observable result.
@@ -808,7 +986,7 @@ Chatbot API and dashboard work are intentionally deferred to Day 5.
   - [ ] Fetch URL content server-side.
   - [ ] Strip scripts, styles, and obvious navigation noise.
   - [ ] Extract title and readable body text.
-  - [ ] Reuse the Day 7 ingestion pipeline.
+  - [ ] Reuse the Day 8 ingestion pipeline.
 - [ ] Show queued, processing, ready, and failed states in the dashboard.
 - [ ] Make ingestion jobs idempotent and safe to retry.
 - [ ] Acceptance:
@@ -820,7 +998,7 @@ Chatbot API and dashboard work are intentionally deferred to Day 5.
   - [ ] `pnpm typecheck`
   - [ ] Relevant queue, retry, text, and URL ingestion tests.
 
-### Day 9: Public Chat API with Trace
+### Day 10: Public Chat API with Trace
 
 - [ ] Implement:
   - [ ] `GET /widget/config?key=pk_xxx`
@@ -830,7 +1008,7 @@ Chatbot API and dashboard work are intentionally deferred to Day 5.
 - [ ] Validate the request origin against the domain allowlist.
 - [ ] Add basic rate limiting for public widget requests.
 - [ ] Create or reuse chat sessions.
-- [ ] Reuse the Day 7 RAG module for every visitor message.
+- [ ] Reuse the Day 8 RAG module for every visitor message.
 - [ ] Store the complete MVP RAG trace:
   - [ ] Visitor question
   - [ ] Retrieved chunks
@@ -853,7 +1031,7 @@ Chatbot API and dashboard work are intentionally deferred to Day 5.
   - [ ] `pnpm typecheck`
   - [ ] Public chat, domain allowlist, rate-limit, and tenant-isolation tests.
 
-### Day 10: Minimal Website Widget
+### Day 11: Minimal Website Widget
 
 - [ ] Build the first runnable `packages/widget` slice:
   - [ ] Vanilla JavaScript build.
@@ -866,7 +1044,7 @@ Chatbot API and dashboard work are intentionally deferred to Day 5.
   - [ ] Citations list
   - [ ] Error state
 - [ ] Load chatbot configuration through the public embed key.
-- [ ] Connect the widget to the Day 9 public chat API.
+- [ ] Connect the widget to the Day 10 public chat API.
 - [ ] Add local embed snippet support:
 
   ```html
@@ -886,7 +1064,7 @@ Chatbot API and dashboard work are intentionally deferred to Day 5.
   - [ ] `pnpm build`
   - [ ] Widget integration test against the public API.
 
-### Day 11: Dashboard Observability
+### Day 12: Dashboard Observability
 
 - [ ] Add chat logs page.
 - [ ] Add RAG trace detail page.
@@ -906,14 +1084,15 @@ Chatbot API and dashboard work are intentionally deferred to Day 5.
   - [ ] `pnpm typecheck`
   - [ ] Relevant trace, usage, and tenant-isolation tests.
 
-### Day 12: Product Completion Pass
+### Day 13: Product Completion Pass
 
 - [ ] Add widget welcome message and basic theme variables.
 - [ ] Add dashboard empty states and actionable error states.
 - [ ] Complete the onboarding checklist for:
   - [ ] Provider configured
+  - [ ] Knowledge Base created
+  - [ ] Knowledge Source ready
   - [ ] Chatbot created
-  - [ ] Knowledge source ready
   - [ ] Embed key created
   - [ ] Widget installed
 - [ ] Verify all provider credentials remain server-only.
@@ -927,7 +1106,7 @@ Chatbot API and dashboard work are intentionally deferred to Day 5.
   - [ ] `pnpm typecheck`
   - [ ] `pnpm build`
 
-### Day 13: Demo and Self-Host Documentation
+### Day 14: Demo and Self-Host Documentation
 
 - [ ] Add demo assets:
   - [ ] Demo HTML page with widget installed
@@ -950,15 +1129,16 @@ Chatbot API and dashboard work are intentionally deferred to Day 5.
   - [ ] `pnpm typecheck`
   - [ ] `pnpm build`
 
-### Day 14: End-to-End Hardening
+### Day 15: End-to-End Hardening
 
 - [ ] Run acceptance test:
   - [ ] Admin signs in
   - [ ] Default organization is created
-  - [ ] Admin creates chatbot
   - [ ] Admin saves provider config
-  - [ ] Admin adds text source
+  - [ ] Admin creates Knowledge Base
+  - [ ] Admin adds text source to the Knowledge Base
   - [ ] Source is indexed into chunks
+  - [ ] Admin creates Chatbot with the Knowledge Base
   - [ ] Admin creates embed key
   - [ ] Widget loads with public key
   - [ ] Visitor asks question
