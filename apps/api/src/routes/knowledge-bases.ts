@@ -3,20 +3,23 @@ import { Hono } from "hono";
 import type { CreateAppOptions } from "../app";
 import type { AppEnv } from "../context";
 import { requireAuth } from "../middleware/require-auth";
-import { createChatbotSchema } from "../schemas/chatbots";
-import { createChatbot, listChatbots } from "../services/chatbots";
+import { createKnowledgeBaseSchema } from "../schemas/knowledge-bases";
+import {
+  createKnowledgeBase,
+  listKnowledgeBases,
+} from "../services/knowledge-bases";
 
-type CreateChatbotsRouteOptions = Omit<CreateAppOptions, "encryptionKey">;
+type CreateKnowledgeBasesRouteOptions = Omit<CreateAppOptions, "encryptionKey">;
 
-const createChatbotValidator = zValidator(
+const createKnowledgeBaseValidator = zValidator(
   "json",
-  createChatbotSchema,
+  createKnowledgeBaseSchema,
   (result, c) => {
     if (!result.success) {
       return c.json(
         {
           code: "VALIDATION_ERROR",
-          message: "Invalid chatbot input.",
+          message: "Invalid knowledge base input.",
           issues: result.error.issues,
         },
         400
@@ -32,26 +35,24 @@ const organizationMembershipRequiredResponse = {
 
 const insufficientRoleResponse = {
   code: "INSUFFICIENT_ORGANIZATION_ROLE",
-  message: "Only the organization owner can create chatbots.",
+  message: "Only the organization owner can create knowledge bases.",
 } as const;
 
-const invalidChatProviderResponse = {
-  code: "INVALID_CHAT_PROVIDER",
-  message: "Selected chat provider is invalid.",
+const invalidEmbeddingProviderResponse = {
+  code: "INVALID_EMBEDDING_PROVIDER",
+  message: "Selected embedding provider is invalid.",
 } as const;
 
-const invalidKnowledgeBaseResponse = {
-  code: "INVALID_KNOWLEDGE_BASE",
-  message: "Selected knowledge base is invalid.",
-} as const;
-
-export const createChatbotsRoute = ({ auth, db }: CreateChatbotsRouteOptions) =>
+export const createKnowledgeBasesRoute = ({
+  auth,
+  db,
+}: CreateKnowledgeBasesRouteOptions) =>
   new Hono<AppEnv>()
     .use("*", requireAuth(auth))
     .get("/", async (c) => {
       const user = c.get("user");
 
-      const result = await listChatbots({
+      const result = await listKnowledgeBases({
         db,
         userId: user.id,
       });
@@ -61,14 +62,14 @@ export const createChatbotsRoute = ({ auth, db }: CreateChatbotsRouteOptions) =>
       }
 
       return c.json({
-        chatbots: result.chatbots,
+        knowledgeBases: result.knowledgeBases,
       });
     })
-    .post("/", createChatbotValidator, async (c) => {
+    .post("/", createKnowledgeBaseValidator, async (c) => {
       const user = c.get("user");
       const input = c.req.valid("json");
 
-      const result = await createChatbot({
+      const result = await createKnowledgeBase({
         db,
         input,
         userId: user.id,
@@ -82,17 +83,13 @@ export const createChatbotsRoute = ({ auth, db }: CreateChatbotsRouteOptions) =>
         return c.json(insufficientRoleResponse, 403);
       }
 
-      if (result.status === "invalid_chat_provider") {
-        return c.json(invalidChatProviderResponse, 400);
-      }
-
-      if (result.status === "invalid_knowledge_base") {
-        return c.json(invalidKnowledgeBaseResponse, 400);
+      if (result.status === "invalid_embedding_provider") {
+        return c.json(invalidEmbeddingProviderResponse, 400);
       }
 
       return c.json(
         {
-          chatbot: result.chatbot,
+          knowledgeBase: result.knowledgeBase,
         },
         201
       );

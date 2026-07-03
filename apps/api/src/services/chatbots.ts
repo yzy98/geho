@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { DbClient } from "@heho/db";
-import { and, desc, eq, inArray } from "@heho/db/helper";
-import { chatbot, llmProvider } from "@heho/db/schema";
+import { and, desc, eq } from "@heho/db/helper";
+import { chatbot, knowledgeBase, llmProvider } from "@heho/db/schema";
 import { hasOwnerRole } from "../lib/helpers";
 import type { CreateChatbotInput } from "../schemas/chatbots";
 import { getCurrentOrganization } from "./organizations";
@@ -37,7 +37,7 @@ export type CreateChatbotResult =
       status: "invalid_chat_provider";
     }
   | {
-      status: "invalid_embedding_provider";
+      status: "invalid_knowledge_base";
     };
 
 export type ListChatbotsResult =
@@ -54,7 +54,7 @@ const chatbotSelection = {
   name: chatbot.name,
   systemInstructions: chatbot.systemInstructions,
   chatProviderId: chatbot.chatProviderId,
-  embeddingProviderId: chatbot.embeddingProviderId,
+  knowledgeBaseId: chatbot.knowledgeBaseId,
   createdAt: chatbot.createdAt,
   updatedAt: chatbot.updatedAt,
 };
@@ -81,46 +81,46 @@ export const createChatbot = async ({
     };
   }
 
-  // Get llm-providers within current organization
-  // Need to be either matched with input chatProvider or embeddingProvider
-  const llmProviders = await db
+  // Check if the input chat provider exists in the current organization
+  const matchedChatProviders = await db
     .select({
       id: llmProvider.id,
-      capability: llmProvider.capability,
     })
     .from(llmProvider)
     .where(
       and(
         eq(llmProvider.organizationId, organization.id),
-        inArray(llmProvider.id, [
-          input.chatProviderId,
-          input.embeddingProviderId,
-        ])
+        eq(llmProvider.id, input.chatProviderId),
+        eq(llmProvider.capability, "chat")
       )
-    );
+    )
+    .limit(1);
 
-  // Get chat provider
-  const chatProvider = llmProviders.find(
-    (provider) =>
-      provider.id === input.chatProviderId && provider.capability === "chat"
-  );
+  const matchedChatProvider = matchedChatProviders[0];
 
-  if (!chatProvider) {
+  if (!matchedChatProvider) {
     return {
       status: "invalid_chat_provider",
     };
   }
 
-  // Get embedding provider
-  const embeddingProvider = llmProviders.find(
-    (provider) =>
-      provider.id === input.embeddingProviderId &&
-      provider.capability === "embedding"
-  );
+  // Check if the input knowledge base exists in the current organization
+  const matchedKnowledgeBases = await db
+    .select({ id: knowledgeBase.id })
+    .from(knowledgeBase)
+    .where(
+      and(
+        eq(knowledgeBase.organizationId, organization.id),
+        eq(knowledgeBase.id, input.knowledgeBaseId)
+      )
+    )
+    .limit(1);
 
-  if (!embeddingProvider) {
+  const matchedKnowledgeBase = matchedKnowledgeBases[0];
+
+  if (!matchedKnowledgeBase) {
     return {
-      status: "invalid_embedding_provider",
+      status: "invalid_knowledge_base",
     };
   }
 
@@ -134,8 +134,8 @@ export const createChatbot = async ({
       organizationId: organization.id,
       name: input.name,
       systemInstructions: input.systemInstructions,
-      chatProviderId: chatProvider.id,
-      embeddingProviderId: embeddingProvider.id,
+      chatProviderId: matchedChatProvider.id,
+      knowledgeBaseId: matchedKnowledgeBase.id,
       createdAt: now,
       updatedAt: now,
     })

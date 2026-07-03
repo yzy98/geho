@@ -5,7 +5,7 @@ export const createChatbotSchema = z
     name: z.string().trim().min(1).max(100),
     systemInstructions: z.string().trim().min(1).max(10_000),
     chatProviderId: z.uuid(),
-    embeddingProviderId: z.uuid(),
+    knowledgeBaseId: z.uuid(),
   })
   .strict();
 
