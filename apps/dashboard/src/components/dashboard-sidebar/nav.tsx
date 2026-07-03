@@ -9,6 +9,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import {
   BotIcon,
+  BrainCircuitIcon,
   Building2Icon,
   KeyRoundIcon,
   LayoutDashboardIcon,
@@ -40,6 +41,15 @@ export function WorkspaceNav({ pathname }: NavProps) {
             >
               <KeyRoundIcon />
               <span>Providers</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname === "/knowledge-bases"}
+              render={<Link to="/knowledge-bases" />}
+            >
+              <BrainCircuitIcon />
+              <span>Knowledge Bases</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

@@ -26,6 +26,10 @@ import { ManageChatbotEmbedKeysDialog } from "@/components/dialogs/manage-chatbo
 import { hasOwnerRole } from "@/lib/utils";
 import { type Chatbot, chatbotsQueryOptions } from "@/queries/chatbot";
 import {
+  type KnowledgeBase,
+  knowledgeBasesQueryOptions,
+} from "@/queries/knowledge-base";
+import {
   type LlmProvider,
   llmProvidersQueryOptions,
 } from "@/queries/llm-provider";
@@ -41,6 +45,9 @@ export const Route = createFileRoute("/_app/_workspace/chatbots")({
       ),
       context.queryClient.ensureQueryData(
         llmProvidersQueryOptions(context.organization.id)
+      ),
+      context.queryClient.ensureQueryData(
+        knowledgeBasesQueryOptions(context.organization.id)
       ),
     ]),
   pendingComponent: ChatbotsPending,
@@ -59,6 +66,9 @@ function ChatbotsPage() {
   const {
     data: { providers },
   } = useSuspenseQuery(llmProvidersQueryOptions(organization.id));
+  const {
+    data: { knowledgeBases },
+  } = useSuspenseQuery(knowledgeBasesQueryOptions(organization.id));
 
   const canCreate = hasOwnerRole(organization.role);
 
@@ -81,6 +91,7 @@ function ChatbotsPage() {
       ) : (
         <ChatbotList
           chatbots={chatbots}
+          knowledgeBases={knowledgeBases}
           onManageEmbedKeys={setManagedChatbot}
           providers={providers}
         />
@@ -88,6 +99,7 @@ function ChatbotsPage() {
 
       {canCreate && (
         <CreateChatDialog
+          knowledgeBases={knowledgeBases}
           onOpenChange={setCreateChatbotDialogOpen}
           open={createChatbotDialogOpen}
           organizationId={organization.id}
@@ -129,16 +141,21 @@ function ChatbotsEmptyAlert({ canCreate }: { canCreate: boolean }) {
 type ChatbotListProps = {
   chatbots: Chatbot[];
   providers: LlmProvider[];
+  knowledgeBases: KnowledgeBase[];
   onManageEmbedKeys: (chatbot: Chatbot) => void;
 };
 
 function ChatbotList({
   chatbots,
   providers,
+  knowledgeBases,
   onManageEmbedKeys,
 }: ChatbotListProps) {
   const providersById = new Map(
     providers.map((provider) => [provider.id, provider])
+  );
+  const knowledgeBasesById = new Map(
+    knowledgeBases.map((knowledgeBase) => [knowledgeBase.id, knowledgeBase])
   );
 
   return (
@@ -146,17 +163,9 @@ function ChatbotList({
       {chatbots.map((chatbot) => (
         <ChatbotCard
           chatbot={chatbot}
-          chatProvider={
-            chatbot.chatProviderId
-              ? providersById.get(chatbot.chatProviderId)
-              : undefined
-          }
-          embeddingProvider={
-            chatbot.embeddingProviderId
-              ? providersById.get(chatbot.embeddingProviderId)
-              : undefined
-          }
+          chatProvider={providersById.get(chatbot.chatProviderId)}
           key={chatbot.id}
+          knowledgeBase={knowledgeBasesById.get(chatbot.knowledgeBaseId)}
           onManageEmbedKeys={onManageEmbedKeys}
         />
       ))}
@@ -167,14 +176,14 @@ function ChatbotList({
 type ChatbotCardProps = {
   chatbot: Chatbot;
   chatProvider: LlmProvider | undefined;
-  embeddingProvider: LlmProvider | undefined;
+  knowledgeBase: KnowledgeBase | undefined;
   onManageEmbedKeys: (chatbot: Chatbot) => void;
 };
 
 function ChatbotCard({
   chatbot,
   chatProvider,
-  embeddingProvider,
+  knowledgeBase,
   onManageEmbedKeys,
 }: ChatbotCardProps) {
   return (
@@ -188,13 +197,16 @@ function ChatbotCard({
 
       <CardContent>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-          <dt className="text-muted-foreground">Chat LLM provider</dt>
+          <dt className="text-muted-foreground">Chat provider</dt>
           <dd className="truncate text-right">
             {formatProvider(chatProvider)}
           </dd>
-          <dt className="text-muted-foreground">Embedding LLM provider</dt>
-          <dd className="truncate text-right">
-            {formatProvider(embeddingProvider)}
+          <dt className="text-muted-foreground">Knowledge base</dt>
+          <dd
+            className="truncate text-right"
+            title={knowledgeBase?.name ?? "Knowledge base missing"}
+          >
+            {knowledgeBase?.name ?? "Knowledge base missing"}
           </dd>
         </dl>
       </CardContent>

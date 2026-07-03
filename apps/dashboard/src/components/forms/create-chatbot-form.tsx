@@ -31,6 +31,7 @@ import { AlertTriangleIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import z from "zod";
 import { createChatbotMutationOptions } from "@/queries/chatbot";
+import type { KnowledgeBase } from "@/queries/knowledge-base";
 import type { LlmProvider } from "@/queries/llm-provider";
 
 const createChatbotFormSchema = z
@@ -46,7 +47,7 @@ const createChatbotFormSchema = z
       .min(1, "System instructions are required")
       .max(10_000, "System instructions are too long"),
     chatProviderId: z.uuid("Select a chat LLM provider"),
-    embeddingProviderId: z.uuid("Select an embedding LLM provider"),
+    knowledgeBaseId: z.uuid("Select a knowledge base"),
   })
   .strict();
 
@@ -55,12 +56,14 @@ type CreateChatbotFormValues = z.infer<typeof createChatbotFormSchema>;
 type CreateChatbotFormProps = Omit<ComponentProps<"form">, "onSubmit"> & {
   organizationId: string;
   providers: LlmProvider[];
+  knowledgeBases: KnowledgeBase[];
   onSuccess?: () => void;
 };
 
 export const CreateChatbotForm = ({
   organizationId,
   providers,
+  knowledgeBases,
   onSuccess,
   ...formProps
 }: CreateChatbotFormProps) => {
@@ -70,12 +73,9 @@ export const CreateChatbotForm = ({
     (provider) => provider.capability === "chat"
   );
 
-  const embeddingProviders = providers.filter(
-    (provider) => provider.capability === "embedding"
-  );
-
-  const hasRequiredProviders =
-    chatProviders.length > 0 && embeddingProviders.length > 0;
+  const hasChatProviders = chatProviders.length > 0;
+  const hasKnowledgeBases = knowledgeBases.length > 0;
+  const hasRequiredDependencies = hasChatProviders && hasKnowledgeBases;
 
   const mutation = useMutation({
     ...createChatbotMutationOptions(queryClient, organizationId),
@@ -89,7 +89,7 @@ export const CreateChatbotForm = ({
       name: "",
       systemInstructions: "",
       chatProviderId: chatProviders[0]?.id ?? "",
-      embeddingProviderId: embeddingProviders[0]?.id ?? "",
+      knowledgeBaseId: knowledgeBases[0]?.id ?? "",
     } satisfies CreateChatbotFormValues,
     validators: {
       onBlur: createChatbotFormSchema,
@@ -117,15 +117,14 @@ export const CreateChatbotForm = ({
     >
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
-          <FieldSet disabled={isSubmitting || !hasRequiredProviders}>
+          <FieldSet disabled={isSubmitting || !hasRequiredDependencies}>
             <FieldGroup>
-              {!hasRequiredProviders && (
+              {!hasChatProviders && (
                 <Alert variant="destructive">
                   <AlertTriangleIcon />
-                  <AlertTitle>LLM providers required</AlertTitle>
+                  <AlertTitle>Chat provider required</AlertTitle>
                   <AlertDescription>
-                    Configure at least one chat provider and one embedding
-                    provider.
+                    Configure a chat provider before creating a chatbot.
                   </AlertDescription>
                   <AlertAction>
                     <Link
@@ -136,6 +135,27 @@ export const CreateChatbotForm = ({
                       to="/providers"
                     >
                       Configure
+                    </Link>
+                  </AlertAction>
+                </Alert>
+              )}
+
+              {!hasKnowledgeBases && (
+                <Alert variant="destructive">
+                  <AlertTriangleIcon />
+                  <AlertTitle>Knowledge base required</AlertTitle>
+                  <AlertDescription>
+                    Configure a knowledge base before creating a chatbot.
+                  </AlertDescription>
+                  <AlertAction>
+                    <Link
+                      className={buttonVariants({
+                        size: "xs",
+                        variant: "secondary",
+                      })}
+                      to="/knowledge-bases"
+                    >
+                      Create
                     </Link>
                   </AlertAction>
                 </Alert>
@@ -227,7 +247,7 @@ export const CreateChatbotForm = ({
                           id={field.name}
                           onBlur={field.handleBlur}
                         >
-                          <SelectValue placeholder="Select a chat LLM provider" />
+                          <SelectValue placeholder="Select a chat provider" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
@@ -247,21 +267,22 @@ export const CreateChatbotForm = ({
                 }}
               </form.Field>
 
-              <form.Field name="embeddingProviderId">
+              <form.Field name="knowledgeBaseId">
                 {(field) => {
                   const isInvalid =
                     field.state.meta.isTouched && !field.state.meta.isValid;
 
-                  const items = embeddingProviders.map((provider) => ({
-                    label: `${provider.name} · ${provider.provider} · ${provider.model}`,
-                    value: provider.id,
+                  const items = knowledgeBases.map((knowledgeBase) => ({
+                    label: knowledgeBase.name,
+                    value: knowledgeBase.id,
                   }));
 
                   return (
                     <Field data-invalid={isInvalid}>
                       <FieldLabel htmlFor={field.name}>
-                        Embedding LLM provider
+                        Knowledge base
                       </FieldLabel>
+
                       <Select
                         items={items}
                         onValueChange={(value) =>
@@ -275,8 +296,9 @@ export const CreateChatbotForm = ({
                           id={field.name}
                           onBlur={field.handleBlur}
                         >
-                          <SelectValue placeholder="Select an embedding LLM provider" />
+                          <SelectValue placeholder="Select a knowledge base" />
                         </SelectTrigger>
+
                         <SelectContent>
                           <SelectGroup>
                             {items.map((item) => (
@@ -287,6 +309,7 @@ export const CreateChatbotForm = ({
                           </SelectGroup>
                         </SelectContent>
                       </Select>
+
                       {isInvalid && (
                         <FieldError errors={field.state.meta.errors} />
                       )}
@@ -301,7 +324,7 @@ export const CreateChatbotForm = ({
                 {([canSubmit, submitting]) => (
                   <Button
                     disabled={
-                      !(hasRequiredProviders && canSubmit) || submitting
+                      !(hasRequiredDependencies && canSubmit) || submitting
                     }
                     form="create-chatbot-form"
                     type="submit"

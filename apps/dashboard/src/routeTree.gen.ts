@@ -17,6 +17,7 @@ import { Route as AppOnboardingRouteImport } from './routes/_app/onboarding'
 import { Route as AppWorkspaceRouteRouteImport } from './routes/_app/_workspace/route'
 import { Route as AppWorkspaceIndexRouteImport } from './routes/_app/_workspace/index'
 import { Route as AppWorkspaceProvidersRouteImport } from './routes/_app/_workspace/providers'
+import { Route as AppWorkspaceKnowledgeBasesRouteImport } from './routes/_app/_workspace/knowledge-bases'
 import { Route as AppWorkspaceChatbotsRouteImport } from './routes/_app/_workspace/chatbots'
 
 const AuthRouteRoute = AuthRouteRouteImport.update({
@@ -56,6 +57,12 @@ const AppWorkspaceProvidersRoute = AppWorkspaceProvidersRouteImport.update({
   path: '/providers',
   getParentRoute: () => AppWorkspaceRouteRoute,
 } as any)
+const AppWorkspaceKnowledgeBasesRoute =
+  AppWorkspaceKnowledgeBasesRouteImport.update({
+    id: '/knowledge-bases',
+    path: '/knowledge-bases',
+    getParentRoute: () => AppWorkspaceRouteRoute,
+  } as any)
 const AppWorkspaceChatbotsRoute = AppWorkspaceChatbotsRouteImport.update({
   id: '/chatbots',
   path: '/chatbots',
@@ -68,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/chatbots': typeof AppWorkspaceChatbotsRoute
+  '/knowledge-bases': typeof AppWorkspaceKnowledgeBasesRoute
   '/providers': typeof AppWorkspaceProvidersRoute
 }
 export interface FileRoutesByTo {
@@ -76,6 +84,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
   '/chatbots': typeof AppWorkspaceChatbotsRoute
+  '/knowledge-bases': typeof AppWorkspaceKnowledgeBasesRoute
   '/providers': typeof AppWorkspaceProvidersRoute
 }
 export interface FileRoutesById {
@@ -87,6 +96,7 @@ export interface FileRoutesById {
   '/_auth/sign-in': typeof AuthSignInRoute
   '/_auth/sign-up': typeof AuthSignUpRoute
   '/_app/_workspace/chatbots': typeof AppWorkspaceChatbotsRoute
+  '/_app/_workspace/knowledge-bases': typeof AppWorkspaceKnowledgeBasesRoute
   '/_app/_workspace/providers': typeof AppWorkspaceProvidersRoute
   '/_app/_workspace/': typeof AppWorkspaceIndexRoute
 }
@@ -98,9 +108,17 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/chatbots'
+    | '/knowledge-bases'
     | '/providers'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/onboarding' | '/sign-in' | '/sign-up' | '/chatbots' | '/providers'
+  to:
+    | '/'
+    | '/onboarding'
+    | '/sign-in'
+    | '/sign-up'
+    | '/chatbots'
+    | '/knowledge-bases'
+    | '/providers'
   id:
     | '__root__'
     | '/_app'
@@ -110,6 +128,7 @@ export interface FileRouteTypes {
     | '/_auth/sign-in'
     | '/_auth/sign-up'
     | '/_app/_workspace/chatbots'
+    | '/_app/_workspace/knowledge-bases'
     | '/_app/_workspace/providers'
     | '/_app/_workspace/'
   fileRoutesById: FileRoutesById
@@ -177,6 +196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceProvidersRouteImport
       parentRoute: typeof AppWorkspaceRouteRoute
     }
+    '/_app/_workspace/knowledge-bases': {
+      id: '/_app/_workspace/knowledge-bases'
+      path: '/knowledge-bases'
+      fullPath: '/knowledge-bases'
+      preLoaderRoute: typeof AppWorkspaceKnowledgeBasesRouteImport
+      parentRoute: typeof AppWorkspaceRouteRoute
+    }
     '/_app/_workspace/chatbots': {
       id: '/_app/_workspace/chatbots'
       path: '/chatbots'
@@ -189,12 +215,14 @@ declare module '@tanstack/react-router' {
 
 interface AppWorkspaceRouteRouteChildren {
   AppWorkspaceChatbotsRoute: typeof AppWorkspaceChatbotsRoute
+  AppWorkspaceKnowledgeBasesRoute: typeof AppWorkspaceKnowledgeBasesRoute
   AppWorkspaceProvidersRoute: typeof AppWorkspaceProvidersRoute
   AppWorkspaceIndexRoute: typeof AppWorkspaceIndexRoute
 }
 
 const AppWorkspaceRouteRouteChildren: AppWorkspaceRouteRouteChildren = {
   AppWorkspaceChatbotsRoute: AppWorkspaceChatbotsRoute,
+  AppWorkspaceKnowledgeBasesRoute: AppWorkspaceKnowledgeBasesRoute,
   AppWorkspaceProvidersRoute: AppWorkspaceProvidersRoute,
   AppWorkspaceIndexRoute: AppWorkspaceIndexRoute,
 }
