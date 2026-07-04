@@ -195,6 +195,13 @@ space.
 A Knowledge Base can contain many Knowledge Sources and can be reused by many
 Chatbots. A Chatbot uses exactly one Knowledge Base in the MVP.
 
+The embedding Provider association is immutable after Knowledge Base creation,
+and an embedding Provider's model configuration is immutable while a Knowledge
+Base references it. To use a different embedding Provider or model, create a
+new Provider and Knowledge Base, then ingest the Sources again. This keeps every
+Knowledge Chunk in a Knowledge Base within one vector space without maintaining
+multiple index versions.
+
 ### Knowledge Source
 
 A Knowledge Source is one original piece of content inside a Knowledge Base.
@@ -218,6 +225,13 @@ zendesk
 intercom
 confluence
 ```
+
+### Knowledge Chunk
+
+A Knowledge Chunk is a deterministic segment of a Knowledge Source. It stores
+both the segment content and its vector embedding because the MVP fixes one
+immutable embedding Provider and model per Knowledge Base. Chunks are written
+only after their embeddings have been generated and validated.
 
 ### RAG Trace
 
@@ -304,8 +318,6 @@ llm_provider
 knowledge_base
 knowledge_source
 knowledge_chunk
-knowledge_index
-chunk_embedding
 
 embed_key
 chat_session
@@ -321,6 +333,8 @@ erDiagram
     ORGANIZATION ||--o{ MEMBER : has
     ORGANIZATION ||--o{ LLM_PROVIDER : configures
     ORGANIZATION ||--o{ KNOWLEDGE_BASE : owns
+    ORGANIZATION ||--o{ KNOWLEDGE_SOURCE : owns
+    ORGANIZATION ||--o{ KNOWLEDGE_CHUNK : owns
     ORGANIZATION ||--o{ CHATBOT : owns
 
     LLM_PROVIDER ||--o{ KNOWLEDGE_BASE : "embeds for"
@@ -329,9 +343,6 @@ erDiagram
     KNOWLEDGE_BASE ||--o{ CHATBOT : "is reused by"
 
     KNOWLEDGE_SOURCE ||--o{ KNOWLEDGE_CHUNK : chunks
-    KNOWLEDGE_SOURCE ||--o{ KNOWLEDGE_INDEX : indexes
-    KNOWLEDGE_INDEX ||--o{ CHUNK_EMBEDDING : contains
-    KNOWLEDGE_CHUNK ||--o{ CHUNK_EMBEDDING : "is represented by"
 
     CHATBOT ||--o{ EMBED_KEY : deploys
     CHATBOT ||--o{ CHAT_SESSION : serves
@@ -377,22 +388,6 @@ erDiagram
         text source_id FK
         integer chunk_index
         text content
-    }
-    KNOWLEDGE_INDEX {
-        text id PK
-        text organization_id FK
-        text knowledge_base_id FK
-        text source_id FK
-        text embedding_provider_id FK
-        text model_snapshot
-        integer dimensions
-        text status
-    }
-    CHUNK_EMBEDDING {
-        text id PK
-        text organization_id FK
-        text knowledge_index_id FK
-        text chunk_id FK
         vector embedding
     }
     EMBED_KEY {
@@ -891,6 +886,8 @@ instead of storing `embedding_provider_id`.
 
 - [x] Add the Organization-owned `knowledge_base` schema.
 - [x] Give each Knowledge Base one required embedding Provider.
+- [x] Keep the Knowledge Base embedding Provider association immutable after
+      creation.
 - [x] Enforce tenant-safe Provider, Knowledge Base, Chatbot, and Embed Key
       relationships with composite constraints.
 - [x] Move embedding ownership from `chatbot.embedding_provider_id` to
@@ -938,8 +935,6 @@ instead of storing `embedding_provider_id`.
 - [ ] Add the minimal schemas for:
   - [ ] `knowledge_source`
   - [ ] `knowledge_chunk`
-  - [ ] `knowledge_index`
-  - [ ] `chunk_embedding`
   - [ ] `chat_session`
   - [ ] `chat_message`
   - [ ] `rag_trace`
@@ -948,13 +943,13 @@ instead of storing `embedding_provider_id`.
 - [ ] Implement deterministic chunking in `packages/rag`.
 - [ ] Generate Source embeddings through the Knowledge Base's configured
       embedding Provider.
-- [ ] Store chunks in PostgreSQL and vectors in pgvector.
-- [ ] Keep Source chunks independent from model-specific Chunk Embeddings.
-- [ ] Save Provider, model, dimensions, and Source revision snapshots on each
-      Knowledge Index.
-- [ ] Mark Sources as `ready` or `failed` and Indexes as `active` or `failed`.
+- [ ] Store each Chunk's content and required vector embedding together in
+      `knowledge_chunk`.
+- [ ] Validate the complete embedding batch before writing Knowledge Chunks.
+- [ ] Mark Sources as `ready` or `failed`; failed ingestion must not leave
+      retrievable partial chunks.
 - [ ] Resolve a Chatbot's Knowledge Base and embed visitor questions with the
-      same Provider and model used by its active Indexes.
+      Knowledge Base's configured embedding Provider and model.
 - [ ] Retrieve top chunks only from the selected Knowledge Base.
 - [ ] Map retrieved chunks back to Sources.
 - [ ] Assemble the prompt in `packages/rag`.
