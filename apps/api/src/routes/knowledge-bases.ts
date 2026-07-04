@@ -6,6 +6,7 @@ import { requireAuth } from "../middleware/require-auth";
 import { createKnowledgeBaseSchema } from "../schemas/knowledge-bases";
 import {
   createKnowledgeBase,
+  getKnowledgeBase,
   listKnowledgeBases,
 } from "../services/knowledge-bases";
 
@@ -41,6 +42,11 @@ const insufficientRoleResponse = {
 const invalidEmbeddingProviderResponse = {
   code: "INVALID_EMBEDDING_PROVIDER",
   message: "Selected embedding provider is invalid.",
+} as const;
+
+const knowledgeBaseNotFoundResponse = {
+  code: "KNOWLEDGE_BASE_NOT_FOUND",
+  message: "Knowledge base was not found.",
 } as const;
 
 export const createKnowledgeBasesRoute = ({
@@ -93,4 +99,26 @@ export const createKnowledgeBasesRoute = ({
         },
         201
       );
+    })
+    .get("/:knowledgeBaseId", async (c) => {
+      const user = c.get("user");
+      const knowledgeBaseId = c.req.param("knowledgeBaseId");
+
+      const result = await getKnowledgeBase({
+        db,
+        knowledgeBaseId,
+        userId: user.id,
+      });
+
+      if (result.status === "organization_membership_required") {
+        return c.json(organizationMembershipRequiredResponse, 403);
+      }
+
+      if (result.status === "not_found") {
+        return c.json(knowledgeBaseNotFoundResponse, 404);
+      }
+
+      return c.json({
+        knowledgeBase: result.knowledgeBase,
+      });
     });

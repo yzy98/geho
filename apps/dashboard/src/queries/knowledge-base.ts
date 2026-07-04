@@ -13,15 +13,31 @@ export type CreateKnowledgeBaseInput = Parameters<
 >[0]["json"];
 
 const listKnowledgeBases = async (signal: AbortSignal) => {
-  // [TODO] Manually slow down 3s in dev environment
-  // if (import.meta.env.DEV) {
-  //   await new Promise((resolve) => setTimeout(resolve, 3000));
-  //   throw new Error("Simulated knowledge bases loading failure.");
-  // }
-
   const response = await knowledgeBasesClient.$get(undefined, {
     init: { signal },
   });
+
+  if (!response.ok) {
+    throw await createApiError(response);
+  }
+
+  return response.json();
+};
+
+const getKnowledgeBaseDetails = async (
+  knowledgeBaseId: string,
+  signal: AbortSignal
+) => {
+  const response = await knowledgeBasesClient[":knowledgeBaseId"].$get(
+    {
+      param: {
+        knowledgeBaseId,
+      },
+    },
+    {
+      init: { signal },
+    }
+  );
 
   if (!response.ok) {
     throw await createApiError(response);
@@ -51,6 +67,20 @@ export const knowledgeBasesQueryOptions = (organizationId: string) =>
     queryFn: ({ signal }) => listKnowledgeBases(signal),
   });
 
+export const knowledgeBaseDetailsQueryKey = (
+  organizationId: string,
+  knowledgeBaseId: string
+) => [...knowledgeBasesQueryKey(organizationId), knowledgeBaseId] as const;
+
+export const knowledgeBaseDetailsQueryOptions = (
+  organizationId: string,
+  knowledgeBaseId: string
+) =>
+  queryOptions({
+    queryKey: knowledgeBaseDetailsQueryKey(organizationId, knowledgeBaseId),
+    queryFn: ({ signal }) => getKnowledgeBaseDetails(knowledgeBaseId, signal),
+  });
+
 export const createKnowledgeBaseMutationOptions = (
   queryClient: QueryClient,
   organizationId: string
@@ -67,3 +97,6 @@ export const createKnowledgeBaseMutationOptions = (
 export type KnowledgeBase = Awaited<
   ReturnType<typeof listKnowledgeBases>
 >["knowledgeBases"][number];
+export type KnowledgeBaseDetails = Awaited<
+  ReturnType<typeof getKnowledgeBaseDetails>
+>["knowledgeBase"];

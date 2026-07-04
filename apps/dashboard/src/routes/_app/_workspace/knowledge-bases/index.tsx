@@ -9,6 +9,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@heho/ui/components/card";
@@ -19,7 +20,7 @@ import {
   type ErrorComponentProps,
   Link,
 } from "@tanstack/react-router";
-import { AlertTriangleIcon, PlusIcon } from "lucide-react";
+import { AlertTriangleIcon, ArrowRightIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { CreateKnowledgeBaseDialog } from "@/components/dialogs/create-knowledge-base-dialog";
 import { hasOwnerRole } from "@/lib/utils";
@@ -32,7 +33,7 @@ import {
   llmProvidersQueryOptions,
 } from "@/queries/llm-provider";
 
-export const Route = createFileRoute("/_app/_workspace/knowledge-bases")({
+export const Route = createFileRoute("/_app/_workspace/knowledge-bases/")({
   staticData: {
     breadcrumb: "Knowledge Bases",
   },
@@ -201,6 +202,20 @@ function KnowledgeBaseCard({
           </dd>
         </dl>
       </CardContent>
+
+      <CardFooter>
+        <Link
+          className={buttonVariants({
+            size: "sm",
+            variant: "outline",
+          })}
+          params={{ knowledgeBaseId: knowledgeBase.id }}
+          to="/knowledge-bases/$knowledgeBaseId"
+        >
+          Manage sources
+          <ArrowRightIcon data-icon="inline-end" />
+        </Link>
+      </CardFooter>
     </Card>
   );
 }

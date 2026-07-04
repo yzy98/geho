@@ -11,6 +11,15 @@ export type KnowledgeBaseDto = Omit<
   "organizationId"
 >;
 
+export type KnowledgeBaseDetailsDto = KnowledgeBaseDto & {
+  embeddingProvider: {
+    id: string;
+    name: string;
+    provider: string;
+    model: string;
+  };
+};
+
 export type CreateKnowledgeBaseOptions = {
   db: DbClient;
   input: CreateKnowledgeBaseInput;
@@ -20,6 +29,12 @@ export type CreateKnowledgeBaseOptions = {
 export type ListKnowledgeBasesOptions = {
   db: DbClient;
   userId: string;
+};
+
+export type GetKnowledgeBaseOptions = {
+  db: DbClient;
+  userId: string;
+  knowledgeBaseId: string;
 };
 
 export type CreateKnowledgeBaseResult =
@@ -44,6 +59,18 @@ export type ListKnowledgeBasesResult =
     }
   | {
       status: "organization_membership_required";
+    };
+
+export type GetKnowledgeBaseResult =
+  | {
+      status: "success";
+      knowledgeBase: KnowledgeBaseDetailsDto;
+    }
+  | {
+      status: "organization_membership_required";
+    }
+  | {
+      status: "not_found";
     };
 
 const knowledgeBaseSelection = {
@@ -149,5 +176,60 @@ export const listKnowledgeBases = async ({
   return {
     status: "success",
     knowledgeBases,
+  };
+};
+
+export const getKnowledgeBase = async ({
+  db,
+  knowledgeBaseId,
+  userId,
+}: GetKnowledgeBaseOptions): Promise<GetKnowledgeBaseResult> => {
+  // Get current organization
+  const organization = await getCurrentOrganization(db, userId);
+
+  // No organization for current user
+  if (!organization) {
+    return {
+      status: "organization_membership_required",
+    };
+  }
+
+  const rows = await db
+    .select({
+      ...knowledgeBaseSelection,
+      embeddingProvider: {
+        id: llmProvider.id,
+        name: llmProvider.name,
+        provider: llmProvider.provider,
+        model: llmProvider.model,
+      },
+    })
+    .from(knowledgeBase)
+    .innerJoin(
+      llmProvider,
+      and(
+        eq(knowledgeBase.organizationId, llmProvider.organizationId),
+        eq(knowledgeBase.embeddingProviderId, llmProvider.id)
+      )
+    )
+    .where(
+      and(
+        eq(knowledgeBase.organizationId, organization.id),
+        eq(knowledgeBase.id, knowledgeBaseId)
+      )
+    )
+    .limit(1);
+
+  const matchedKnowledgeBase = rows[0];
+
+  if (!matchedKnowledgeBase) {
+    return {
+      status: "not_found",
+    };
+  }
+
+  return {
+    status: "success",
+    knowledgeBase: matchedKnowledgeBase,
   };
 };
