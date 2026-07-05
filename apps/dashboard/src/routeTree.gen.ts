@@ -18,6 +18,7 @@ import { Route as AppWorkspaceRouteRouteImport } from './routes/_app/_workspace/
 import { Route as AppWorkspaceIndexRouteImport } from './routes/_app/_workspace/index'
 import { Route as AppWorkspaceProvidersRouteImport } from './routes/_app/_workspace/providers'
 import { Route as AppWorkspaceChatbotsRouteImport } from './routes/_app/_workspace/chatbots'
+import { Route as AppWorkspaceKnowledgeBasesRouteRouteImport } from './routes/_app/_workspace/knowledge-bases/route'
 import { Route as AppWorkspaceKnowledgeBasesIndexRouteImport } from './routes/_app/_workspace/knowledge-bases/index'
 import { Route as AppWorkspaceKnowledgeBasesKnowledgeBaseIdRouteImport } from './routes/_app/_workspace/knowledge-bases/$knowledgeBaseId'
 
@@ -63,17 +64,23 @@ const AppWorkspaceChatbotsRoute = AppWorkspaceChatbotsRouteImport.update({
   path: '/chatbots',
   getParentRoute: () => AppWorkspaceRouteRoute,
 } as any)
+const AppWorkspaceKnowledgeBasesRouteRoute =
+  AppWorkspaceKnowledgeBasesRouteRouteImport.update({
+    id: '/knowledge-bases',
+    path: '/knowledge-bases',
+    getParentRoute: () => AppWorkspaceRouteRoute,
+  } as any)
 const AppWorkspaceKnowledgeBasesIndexRoute =
   AppWorkspaceKnowledgeBasesIndexRouteImport.update({
-    id: '/knowledge-bases/',
-    path: '/knowledge-bases/',
-    getParentRoute: () => AppWorkspaceRouteRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppWorkspaceKnowledgeBasesRouteRoute,
   } as any)
 const AppWorkspaceKnowledgeBasesKnowledgeBaseIdRoute =
   AppWorkspaceKnowledgeBasesKnowledgeBaseIdRouteImport.update({
-    id: '/knowledge-bases/$knowledgeBaseId',
-    path: '/knowledge-bases/$knowledgeBaseId',
-    getParentRoute: () => AppWorkspaceRouteRoute,
+    id: '/$knowledgeBaseId',
+    path: '/$knowledgeBaseId',
+    getParentRoute: () => AppWorkspaceKnowledgeBasesRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -81,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof AppOnboardingRoute
   '/sign-in': typeof AuthSignInRoute
   '/sign-up': typeof AuthSignUpRoute
+  '/knowledge-bases': typeof AppWorkspaceKnowledgeBasesRouteRouteWithChildren
   '/chatbots': typeof AppWorkspaceChatbotsRoute
   '/providers': typeof AppWorkspaceProvidersRoute
   '/knowledge-bases/$knowledgeBaseId': typeof AppWorkspaceKnowledgeBasesKnowledgeBaseIdRoute
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/_app/onboarding': typeof AppOnboardingRoute
   '/_auth/sign-in': typeof AuthSignInRoute
   '/_auth/sign-up': typeof AuthSignUpRoute
+  '/_app/_workspace/knowledge-bases': typeof AppWorkspaceKnowledgeBasesRouteRouteWithChildren
   '/_app/_workspace/chatbots': typeof AppWorkspaceChatbotsRoute
   '/_app/_workspace/providers': typeof AppWorkspaceProvidersRoute
   '/_app/_workspace/': typeof AppWorkspaceIndexRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/sign-in'
     | '/sign-up'
+    | '/knowledge-bases'
     | '/chatbots'
     | '/providers'
     | '/knowledge-bases/$knowledgeBaseId'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/_app/onboarding'
     | '/_auth/sign-in'
     | '/_auth/sign-up'
+    | '/_app/_workspace/knowledge-bases'
     | '/_app/_workspace/chatbots'
     | '/_app/_workspace/providers'
     | '/_app/_workspace/'
@@ -216,38 +227,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceChatbotsRouteImport
       parentRoute: typeof AppWorkspaceRouteRoute
     }
+    '/_app/_workspace/knowledge-bases': {
+      id: '/_app/_workspace/knowledge-bases'
+      path: '/knowledge-bases'
+      fullPath: '/knowledge-bases'
+      preLoaderRoute: typeof AppWorkspaceKnowledgeBasesRouteRouteImport
+      parentRoute: typeof AppWorkspaceRouteRoute
+    }
     '/_app/_workspace/knowledge-bases/': {
       id: '/_app/_workspace/knowledge-bases/'
-      path: '/knowledge-bases'
+      path: '/'
       fullPath: '/knowledge-bases/'
       preLoaderRoute: typeof AppWorkspaceKnowledgeBasesIndexRouteImport
-      parentRoute: typeof AppWorkspaceRouteRoute
+      parentRoute: typeof AppWorkspaceKnowledgeBasesRouteRoute
     }
     '/_app/_workspace/knowledge-bases/$knowledgeBaseId': {
       id: '/_app/_workspace/knowledge-bases/$knowledgeBaseId'
-      path: '/knowledge-bases/$knowledgeBaseId'
+      path: '/$knowledgeBaseId'
       fullPath: '/knowledge-bases/$knowledgeBaseId'
       preLoaderRoute: typeof AppWorkspaceKnowledgeBasesKnowledgeBaseIdRouteImport
-      parentRoute: typeof AppWorkspaceRouteRoute
+      parentRoute: typeof AppWorkspaceKnowledgeBasesRouteRoute
     }
   }
 }
 
-interface AppWorkspaceRouteRouteChildren {
-  AppWorkspaceChatbotsRoute: typeof AppWorkspaceChatbotsRoute
-  AppWorkspaceProvidersRoute: typeof AppWorkspaceProvidersRoute
-  AppWorkspaceIndexRoute: typeof AppWorkspaceIndexRoute
+interface AppWorkspaceKnowledgeBasesRouteRouteChildren {
   AppWorkspaceKnowledgeBasesKnowledgeBaseIdRoute: typeof AppWorkspaceKnowledgeBasesKnowledgeBaseIdRoute
   AppWorkspaceKnowledgeBasesIndexRoute: typeof AppWorkspaceKnowledgeBasesIndexRoute
 }
 
+const AppWorkspaceKnowledgeBasesRouteRouteChildren: AppWorkspaceKnowledgeBasesRouteRouteChildren =
+  {
+    AppWorkspaceKnowledgeBasesKnowledgeBaseIdRoute:
+      AppWorkspaceKnowledgeBasesKnowledgeBaseIdRoute,
+    AppWorkspaceKnowledgeBasesIndexRoute: AppWorkspaceKnowledgeBasesIndexRoute,
+  }
+
+const AppWorkspaceKnowledgeBasesRouteRouteWithChildren =
+  AppWorkspaceKnowledgeBasesRouteRoute._addFileChildren(
+    AppWorkspaceKnowledgeBasesRouteRouteChildren,
+  )
+
+interface AppWorkspaceRouteRouteChildren {
+  AppWorkspaceKnowledgeBasesRouteRoute: typeof AppWorkspaceKnowledgeBasesRouteRouteWithChildren
+  AppWorkspaceChatbotsRoute: typeof AppWorkspaceChatbotsRoute
+  AppWorkspaceProvidersRoute: typeof AppWorkspaceProvidersRoute
+  AppWorkspaceIndexRoute: typeof AppWorkspaceIndexRoute
+}
+
 const AppWorkspaceRouteRouteChildren: AppWorkspaceRouteRouteChildren = {
+  AppWorkspaceKnowledgeBasesRouteRoute:
+    AppWorkspaceKnowledgeBasesRouteRouteWithChildren,
   AppWorkspaceChatbotsRoute: AppWorkspaceChatbotsRoute,
   AppWorkspaceProvidersRoute: AppWorkspaceProvidersRoute,
   AppWorkspaceIndexRoute: AppWorkspaceIndexRoute,
-  AppWorkspaceKnowledgeBasesKnowledgeBaseIdRoute:
-    AppWorkspaceKnowledgeBasesKnowledgeBaseIdRoute,
-  AppWorkspaceKnowledgeBasesIndexRoute: AppWorkspaceKnowledgeBasesIndexRoute,
 }
 
 const AppWorkspaceRouteRouteWithChildren =

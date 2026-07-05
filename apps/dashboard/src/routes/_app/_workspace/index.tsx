@@ -1,9 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, linkOptions } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_app/_workspace/")({
-  staticData: {
-    breadcrumb: "Overview",
-  },
+  context: ({ context }) => ({
+    breadcrumbs: [
+      ...context.breadcrumbs,
+      {
+        id: "overview",
+        label: "Overview",
+        linkOptions: linkOptions({
+          to: "/",
+        }),
+      },
+    ],
+  }),
   component: HomePage,
 });
 

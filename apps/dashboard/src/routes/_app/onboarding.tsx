@@ -1,11 +1,21 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, linkOptions, redirect } from "@tanstack/react-router";
 import { CreateOrganizationForm } from "@/components/forms/create-organization-form";
 import { organizationQueryOptions } from "@/queries/organization";
+import type { DashboardBreadcrumbContext } from "@/routes/__root";
 
 export const Route = createFileRoute("/_app/onboarding")({
-  staticData: {
-    breadcrumb: "Onboarding",
-  },
+  context: ({ context }): DashboardBreadcrumbContext => ({
+    breadcrumbs: [
+      ...context.breadcrumbs,
+      {
+        id: "onboarding",
+        label: "Onboarding",
+        linkOptions: linkOptions({
+          to: "/onboarding",
+        }),
+      },
+    ],
+  }),
   beforeLoad: async ({ context }) => {
     // Check current organization
     const organizationResult = await context.queryClient.ensureQueryData(

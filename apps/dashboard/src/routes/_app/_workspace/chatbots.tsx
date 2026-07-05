@@ -18,6 +18,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   createFileRoute,
   type ErrorComponentProps,
+  linkOptions,
 } from "@tanstack/react-router";
 import { AlertTriangleIcon, KeyRoundIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
@@ -33,11 +34,21 @@ import {
   type LlmProvider,
   llmProvidersQueryOptions,
 } from "@/queries/llm-provider";
+import type { DashboardBreadcrumbContext } from "@/routes/__root";
 
 export const Route = createFileRoute("/_app/_workspace/chatbots")({
-  staticData: {
-    breadcrumb: "Chatbots",
-  },
+  context: ({ context }): DashboardBreadcrumbContext => ({
+    breadcrumbs: [
+      ...context.breadcrumbs,
+      {
+        id: "chatbots",
+        label: "Chatbots",
+        linkOptions: linkOptions({
+          to: "/chatbots",
+        }),
+      },
+    ],
+  }),
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(

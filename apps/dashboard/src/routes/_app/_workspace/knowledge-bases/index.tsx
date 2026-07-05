@@ -34,9 +34,6 @@ import {
 } from "@/queries/llm-provider";
 
 export const Route = createFileRoute("/_app/_workspace/knowledge-bases/")({
-  staticData: {
-    breadcrumb: "Knowledge Bases",
-  },
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(

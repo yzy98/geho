@@ -1,13 +1,26 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, linkOptions } from "@tanstack/react-router";
 import { knowledgeBaseDetailsQueryOptions } from "@/queries/knowledge-base";
+import type { DashboardBreadcrumbContext } from "@/routes/__root";
 
 export const Route = createFileRoute(
   "/_app/_workspace/knowledge-bases/$knowledgeBaseId"
 )({
-  staticData: {
-    breadcrumb: "Knowledge Base",
-  },
+  context: ({ context, params }): DashboardBreadcrumbContext => ({
+    breadcrumbs: [
+      ...context.breadcrumbs,
+      {
+        id: `knowledge-base-${params.knowledgeBaseId}`,
+        label: params.knowledgeBaseId,
+        linkOptions: linkOptions({
+          to: "/knowledge-bases/$knowledgeBaseId",
+          params: {
+            knowledgeBaseId: params.knowledgeBaseId,
+          },
+        }),
+      },
+    ],
+  }),
   loader: ({ context, params }) =>
     context.queryClient.ensureQueryData(
       knowledgeBaseDetailsQueryOptions(
