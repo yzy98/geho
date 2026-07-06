@@ -23,7 +23,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { z } from "zod";
 import { apiClient } from "@/lib/api-client";
-import { organizationQueryOptions } from "@/queries/organization";
+import {
+  type CurrentOrganization,
+  organizationQueryOptions,
+} from "@/queries/organization";
 
 const createOrganizationFormSchema = z.object({
   name: z
@@ -46,13 +49,6 @@ const createOrganizationFormSchema = z.object({
 type CreateOrganizationFormValues = z.infer<
   typeof createOrganizationFormSchema
 >;
-
-interface CurrentOrganization {
-  id: string;
-  name: string;
-  role: string;
-  slug: string;
-}
 
 interface CreateOrganizationSuccess {
   organization: CurrentOrganization;

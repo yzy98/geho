@@ -23,7 +23,7 @@ import {
 import { AlertTriangleIcon, ArrowRightIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { CreateKnowledgeBaseDialog } from "@/components/dialogs/create-knowledge-base-dialog";
-import { hasOwnerRole } from "@/lib/utils";
+import { useOrganizationPermission } from "@/hooks/use-organization-permission";
 import {
   type KnowledgeBase,
   knowledgeBasesQueryOptions,
@@ -32,6 +32,7 @@ import {
   type LlmProvider,
   llmProvidersQueryOptions,
 } from "@/queries/llm-provider";
+import { organizationPermissionQueryOptions } from "@/queries/organization-permission";
 
 export const Route = createFileRoute("/_app/_workspace/knowledge-bases/")({
   loader: ({ context }) =>
@@ -41,6 +42,12 @@ export const Route = createFileRoute("/_app/_workspace/knowledge-bases/")({
       ),
       context.queryClient.ensureQueryData(
         llmProvidersQueryOptions(context.organization.id)
+      ),
+      context.queryClient.ensureQueryData(
+        organizationPermissionQueryOptions(
+          context.organization.id,
+          "createKnowledgeBase"
+        )
       ),
     ]),
   pendingComponent: KnowledgeBasesPending,
@@ -62,8 +69,10 @@ function KnowledgeBasesPage() {
   const embeddingProviders = providers.filter(
     (provider) => provider.capability === "embedding"
   );
-  const canCreate = hasOwnerRole(organization.role);
   const hasEmbeddingProvider = embeddingProviders.length > 0;
+  const canCreateKnowledgeBase = useOrganizationPermission(
+    "createKnowledgeBase"
+  );
 
   return (
     <>
@@ -72,14 +81,14 @@ function KnowledgeBasesPage() {
           Create reusable knowledge collections for your chatbots.
         </p>
 
-        {canCreate && hasEmbeddingProvider && (
+        {canCreateKnowledgeBase && hasEmbeddingProvider && (
           <Button onClick={() => setCreateDialogOpen(true)}>
             <PlusIcon data-icon="inline-start" />
             Add knowledge base
           </Button>
         )}
 
-        {canCreate && !hasEmbeddingProvider && (
+        {canCreateKnowledgeBase && !hasEmbeddingProvider && (
           <Link className={buttonVariants()} to="/providers">
             Configure embedding provider
           </Link>
@@ -88,7 +97,7 @@ function KnowledgeBasesPage() {
 
       {knowledgeBases.length === 0 ? (
         <KnowledgeBasesEmptyAlert
-          canCreate={canCreate}
+          canCreate={canCreateKnowledgeBase}
           hasEmbeddingProvider={hasEmbeddingProvider}
         />
       ) : (
@@ -98,7 +107,7 @@ function KnowledgeBasesPage() {
         />
       )}
 
-      {canCreate && hasEmbeddingProvider && (
+      {canCreateKnowledgeBase && hasEmbeddingProvider && (
         <CreateKnowledgeBaseDialog
           onOpenChange={setCreateDialogOpen}
           open={createDialogOpen}
@@ -130,7 +139,7 @@ function KnowledgeBasesEmptyAlert({
           ? hasEmbeddingProvider
             ? "Create a reusable knowledge base for your chatbots."
             : "Configure an embedding provider before creating a knowledge base."
-          : "The organization owner must create the first knowledge base."}
+          : "You do not have permission to create knowledge bases."}
       </AlertDescription>
     </Alert>
   );

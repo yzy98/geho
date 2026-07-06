@@ -24,7 +24,7 @@ import { AlertTriangleIcon, KeyRoundIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { CreateChatDialog } from "@/components/dialogs/create-chatbot-dialog";
 import { ManageChatbotEmbedKeysDialog } from "@/components/dialogs/manage-chatbot-embed-keys-dialog";
-import { hasOwnerRole } from "@/lib/utils";
+import { useOrganizationPermission } from "@/hooks/use-organization-permission";
 import { type Chatbot, chatbotsQueryOptions } from "@/queries/chatbot";
 import {
   type KnowledgeBase,
@@ -34,6 +34,7 @@ import {
   type LlmProvider,
   llmProvidersQueryOptions,
 } from "@/queries/llm-provider";
+import { organizationPermissionQueryOptions } from "@/queries/organization-permission";
 import type { DashboardBreadcrumbContext } from "@/routes/__root";
 
 export const Route = createFileRoute("/_app/_workspace/chatbots")({
@@ -60,6 +61,18 @@ export const Route = createFileRoute("/_app/_workspace/chatbots")({
       context.queryClient.ensureQueryData(
         knowledgeBasesQueryOptions(context.organization.id)
       ),
+      context.queryClient.ensureQueryData(
+        organizationPermissionQueryOptions(
+          context.organization.id,
+          "createChatbot"
+        )
+      ),
+      context.queryClient.ensureQueryData(
+        organizationPermissionQueryOptions(
+          context.organization.id,
+          "createEmbedKey"
+        )
+      ),
     ]),
   pendingComponent: ChatbotsPending,
   errorComponent: ChatbotsError,
@@ -81,7 +94,8 @@ function ChatbotsPage() {
     data: { knowledgeBases },
   } = useSuspenseQuery(knowledgeBasesQueryOptions(organization.id));
 
-  const canCreate = hasOwnerRole(organization.role);
+  const canCreateChatbot = useOrganizationPermission("createChatbot");
+  const canCreateEmbedKey = useOrganizationPermission("createEmbedKey");
 
   return (
     <>
@@ -89,7 +103,7 @@ function ChatbotsPage() {
         <p className="text-muted-foreground text-sm">
           Configure your chatbots.
         </p>
-        {canCreate && (
+        {canCreateChatbot && (
           <Button onClick={() => setCreateChatbotDialogOpen(true)}>
             <PlusIcon data-icon="inline-start" />
             Add chatbot
@@ -98,7 +112,7 @@ function ChatbotsPage() {
       </div>
 
       {chatbots.length === 0 ? (
-        <ChatbotsEmptyAlert canCreate={canCreate} />
+        <ChatbotsEmptyAlert canCreate={canCreateChatbot} />
       ) : (
         <ChatbotList
           chatbots={chatbots}
@@ -108,7 +122,7 @@ function ChatbotsPage() {
         />
       )}
 
-      {canCreate && (
+      {canCreateChatbot && (
         <CreateChatDialog
           knowledgeBases={knowledgeBases}
           onOpenChange={setCreateChatbotDialogOpen}
@@ -120,7 +134,7 @@ function ChatbotsPage() {
 
       {managedChatbot && (
         <ManageChatbotEmbedKeysDialog
-          canCreate={canCreate}
+          canCreate={canCreateEmbedKey}
           chatbot={managedChatbot}
           onOpenChange={(open) => {
             if (!open) {
@@ -143,7 +157,7 @@ function ChatbotsEmptyAlert({ canCreate }: { canCreate: boolean }) {
       <AlertDescription>
         {canCreate
           ? "Create your first chatbot."
-          : "The organization owner must create the first chatbot."}
+          : "You do not have permission to create chatbots."}
       </AlertDescription>
     </Alert>
   );
