@@ -155,7 +155,7 @@ export const createOrganizationsRoute = ({
           user: {
             name: member.user.name,
             email: member.user.email,
-            image: member.user.email ?? null,
+            image: member.user.image ?? null,
           },
         })),
         total: result.total,
