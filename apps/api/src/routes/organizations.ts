@@ -6,7 +6,6 @@ import { requireAuth } from "../middleware/require-auth";
 import { createOrganizationSchema } from "../schemas/organizations";
 import {
   createInitialOrganization,
-  getCurrentOrganization,
   hasAnyOrganization,
 } from "../services/organizations";
 
@@ -36,40 +35,41 @@ export const createOrganizationsRoute = ({
   new Hono<AppEnv>()
     .use("*", requireAuth(auth))
     .get("/current", async (c) => {
-      const user = c.get("user");
+      const organizations = await auth.api.listOrganizations({
+        headers: c.req.raw.headers,
+      });
 
-      // Get the current user's organization
-      const userOrganization = await getCurrentOrganization(db, user.id);
+      // One tenant
+      const organization = organizations[0];
 
-      // User belongs to no organization
-      if (!userOrganization) {
-        const organizationExists = await hasAnyOrganization(db);
+      if (organization) {
+        return c.json({
+          organization,
+        });
+      }
 
-        // Organization exists, user does not belong to any
-        if (organizationExists) {
-          return c.json(
-            {
-              code: "ORGANIZATION_MEMBERSHIP_REQUIRED",
-              message:
-                "An organization already exists. Ask an owner to invite this user.",
-            },
-            403
-          );
-        }
+      const organizationExists = await hasAnyOrganization(db);
 
-        // Organization not exists, and user does not belong to any
+      // Organization exists, user does not belong to any
+      if (organizationExists) {
         return c.json(
           {
-            code: "ORGANIZATION_ONBOARDING_REQUIRED",
-            message: "Create an organization to continue.",
+            code: "ORGANIZATION_MEMBERSHIP_REQUIRED",
+            message:
+              "An organization already exists. Ask an owner to invite this user.",
           },
           403
         );
       }
 
-      return c.json({
-        organization: userOrganization,
-      });
+      // Organization not exists, and user does not belong to any
+      return c.json(
+        {
+          code: "ORGANIZATION_ONBOARDING_REQUIRED",
+          message: "Create an organization to continue.",
+        },
+        403
+      );
     })
     .post("/", createOrganizationValidator, async (c) => {
       const user = c.get("user");
@@ -78,6 +78,7 @@ export const createOrganizationsRoute = ({
       const result = await createInitialOrganization({
         auth,
         db,
+        headers: c.req.raw.headers,
         input,
         userId: user.id,
       });

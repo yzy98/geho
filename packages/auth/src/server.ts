@@ -2,7 +2,7 @@ import { authSchema, type DbClient } from "@heho/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins/organization";
-import { organizationRoles } from "./access-control";
+import { organizationAC, organizationRoles } from "./access-control";
 
 export interface CreateAuthServerOptions {
   baseURL: string;
@@ -32,6 +32,7 @@ export const createAuthServer = ({
     },
     plugins: [
       organization({
+        ac: organizationAC,
         roles: organizationRoles,
         creatorRole: "owner",
         teams: {

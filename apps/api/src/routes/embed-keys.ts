@@ -3,6 +3,8 @@ import { Hono } from "hono";
 import type { CreateAppOptions } from "../app";
 import type { AppEnv } from "../context";
 import { requireAuth } from "../middleware/require-auth";
+import { requireOrganization } from "../middleware/require-organization";
+import { requireOrganizationPermission } from "../middleware/require-organization-permission";
 import {
   chatbotEmbedKeysParamsSchema,
   createEmbedKeySchema,
@@ -48,16 +50,6 @@ const createEmbedKeyValidator = zValidator(
   }
 );
 
-const organizationMembershipRequiredResponse = {
-  code: "ORGANIZATION_MEMBERSHIP_REQUIRED",
-  message: "Current user does not belong to an organization.",
-} as const;
-
-const insufficientRoleResponse = {
-  code: "INSUFFICIENT_ORGANIZATION_ROLE",
-  message: "Only the organization owner can create embed keys.",
-} as const;
-
 const invalidChatbotResponse = {
   code: "INVALID_CHATBOT",
   message: "Selected chatbot is invalid.",
@@ -69,22 +61,22 @@ export const createChatbotEmbedKeysRoute = ({
 }: CreateChatbotEmbedKeysRouteOptions) =>
   new Hono<AppEnv>()
     .use("*", requireAuth(auth))
+    .use("*", requireOrganization(auth))
     .get(
       "/:chatbotId/embed-keys",
+      requireOrganizationPermission(auth, {
+        embedKey: ["read"],
+      }),
       chatbotEmbedKeysParamsValidator,
       async (c) => {
-        const user = c.get("user");
+        const organization = c.get("organization");
         const { chatbotId } = c.req.valid("param");
 
         const result = await listChatbotEmbedKeys({
           db,
           chatbotId,
-          userId: user.id,
+          organizationId: organization.id,
         });
-
-        if (result.status === "organization_membership_required") {
-          return c.json(organizationMembershipRequiredResponse, 403);
-        }
 
         if (result.status === "invalid_chatbot") {
           return c.json(invalidChatbotResponse, 400);
@@ -97,10 +89,13 @@ export const createChatbotEmbedKeysRoute = ({
     )
     .post(
       "/:chatbotId/embed-keys",
+      requireOrganizationPermission(auth, {
+        embedKey: ["create"],
+      }),
       chatbotEmbedKeysParamsValidator,
       createEmbedKeyValidator,
       async (c) => {
-        const user = c.get("user");
+        const organization = c.get("organization");
         const { chatbotId } = c.req.valid("param");
         const input = c.req.valid("json");
 
@@ -108,16 +103,8 @@ export const createChatbotEmbedKeysRoute = ({
           db,
           chatbotId,
           input,
-          userId: user.id,
+          organizationId: organization.id,
         });
-
-        if (result.status === "organization_membership_required") {
-          return c.json(organizationMembershipRequiredResponse, 403);
-        }
-
-        if (result.status === "insufficient_role") {
-          return c.json(insufficientRoleResponse, 403);
-        }
 
         if (result.status === "invalid_chatbot") {
           return c.json(invalidChatbotResponse, 400);

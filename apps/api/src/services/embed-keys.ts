@@ -8,9 +8,7 @@ import {
   hashEmbedKey,
   isEmbedKey,
 } from "../lib/embed-key";
-import { hasOwnerRole } from "../lib/helpers";
 import type { CreateEmbedKeyInput } from "../schemas/embed-keys";
-import { getCurrentOrganization } from "./organizations";
 
 export type EmbedKeyDto = Omit<
   typeof embedKeyTable.$inferSelect,
@@ -21,13 +19,13 @@ export type CreateEmbedKeyOptions = {
   db: DbClient;
   chatbotId: string;
   input: CreateEmbedKeyInput;
-  userId: string;
+  organizationId: string;
 };
 
 export type ListChatbotEmbedKeysOptions = {
   db: DbClient;
   chatbotId: string;
-  userId: string;
+  organizationId: string;
 };
 
 export type ResolveEmbedKeyOptions = {
@@ -42,12 +40,6 @@ export type CreateEmbedKeyResult =
       key: string;
     }
   | {
-      status: "organization_membership_required";
-    }
-  | {
-      status: "insufficient_role";
-    }
-  | {
       status: "invalid_chatbot";
     };
 
@@ -55,9 +47,6 @@ export type ListChatbotEmbedKeysResult =
   | {
       status: "success";
       embedKeys: EmbedKeyDto[];
-    }
-  | {
-      status: "organization_membership_required";
     }
   | {
       status: "invalid_chatbot";
@@ -104,30 +93,13 @@ export const createEmbedKey = async ({
   db,
   chatbotId,
   input,
-  userId,
+  organizationId,
 }: CreateEmbedKeyOptions): Promise<CreateEmbedKeyResult> => {
-  // Get current organization
-  const organization = await getCurrentOrganization(db, userId);
-
-  // No organization for current user
-  if (!organization) {
-    return {
-      status: "organization_membership_required",
-    };
-  }
-
-  // Only the organization owner can create embed key
-  if (!hasOwnerRole(organization.role)) {
-    return {
-      status: "insufficient_role",
-    };
-  }
-
   // Check if the chatbot provided exists or not
   const selectedChatbot = await findChatbotInOrganization({
     db,
     chatbotId,
-    organizationId: organization.id,
+    organizationId,
   });
 
   if (!selectedChatbot) {
@@ -148,7 +120,7 @@ export const createEmbedKey = async ({
     .insert(embedKeyTable)
     .values({
       id: randomUUID(),
-      organizationId: organization.id,
+      organizationId,
       chatbotId: selectedChatbot.id,
       keyPrefix,
       keyHash,
@@ -173,23 +145,13 @@ export const createEmbedKey = async ({
 export const listChatbotEmbedKeys = async ({
   db,
   chatbotId,
-  userId,
+  organizationId,
 }: ListChatbotEmbedKeysOptions): Promise<ListChatbotEmbedKeysResult> => {
-  // Get current organization
-  const organization = await getCurrentOrganization(db, userId);
-
-  // No organization for current user
-  if (!organization) {
-    return {
-      status: "organization_membership_required",
-    };
-  }
-
   // Check if the chatbot provided exists or not
   const selectedChatbot = await findChatbotInOrganization({
     db,
     chatbotId,
-    organizationId: organization.id,
+    organizationId,
   });
 
   if (!selectedChatbot) {
@@ -203,7 +165,7 @@ export const listChatbotEmbedKeys = async ({
     .from(embedKeyTable)
     .where(
       and(
-        eq(embedKeyTable.organizationId, organization.id),
+        eq(embedKeyTable.organizationId, organizationId),
         eq(embedKeyTable.chatbotId, selectedChatbot.id)
       )
     )

@@ -2,9 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { DbClient } from "@heho/db";
 import { and, desc, eq } from "@heho/db/helper";
 import { knowledgeBase, llmProvider } from "@heho/db/schema";
-import { hasOwnerRole } from "../lib/helpers";
 import type { CreateKnowledgeBaseInput } from "../schemas/knowledge-bases";
-import { getCurrentOrganization } from "./organizations";
 
 export type KnowledgeBaseDto = Omit<
   typeof knowledgeBase.$inferSelect,
@@ -23,17 +21,17 @@ export type KnowledgeBaseDetailsDto = KnowledgeBaseDto & {
 export type CreateKnowledgeBaseOptions = {
   db: DbClient;
   input: CreateKnowledgeBaseInput;
-  userId: string;
+  organizationId: string;
 };
 
 export type ListKnowledgeBasesOptions = {
   db: DbClient;
-  userId: string;
+  organizationId: string;
 };
 
 export type GetKnowledgeBaseOptions = {
   db: DbClient;
-  userId: string;
+  organizationId: string;
   knowledgeBaseId: string;
 };
 
@@ -43,31 +41,18 @@ export type CreateKnowledgeBaseResult =
       knowledgeBase: KnowledgeBaseDto;
     }
   | {
-      status: "organization_membership_required";
-    }
-  | {
-      status: "insufficient_role";
-    }
-  | {
       status: "invalid_embedding_provider";
     };
 
-export type ListKnowledgeBasesResult =
-  | {
-      status: "success";
-      knowledgeBases: KnowledgeBaseDto[];
-    }
-  | {
-      status: "organization_membership_required";
-    };
+export type ListKnowledgeBasesResult = {
+  status: "success";
+  knowledgeBases: KnowledgeBaseDto[];
+};
 
 export type GetKnowledgeBaseResult =
   | {
       status: "success";
       knowledgeBase: KnowledgeBaseDetailsDto;
-    }
-  | {
-      status: "organization_membership_required";
     }
   | {
       status: "not_found";
@@ -84,25 +69,8 @@ const knowledgeBaseSelection = {
 export const createKnowledgeBase = async ({
   db,
   input,
-  userId,
+  organizationId,
 }: CreateKnowledgeBaseOptions): Promise<CreateKnowledgeBaseResult> => {
-  // Get current organization
-  const organization = await getCurrentOrganization(db, userId);
-
-  // No organization for current user
-  if (!organization) {
-    return {
-      status: "organization_membership_required",
-    };
-  }
-
-  // Only the organization owner can create knowledge base
-  if (!hasOwnerRole(organization.role)) {
-    return {
-      status: "insufficient_role",
-    };
-  }
-
   // Check if the provided embedding provider exists in the current organization
   const embeddingProviders = await db
     .select({
@@ -111,7 +79,7 @@ export const createKnowledgeBase = async ({
     .from(llmProvider)
     .where(
       and(
-        eq(llmProvider.organizationId, organization.id),
+        eq(llmProvider.organizationId, organizationId),
         eq(llmProvider.id, input.embeddingProviderId),
         eq(llmProvider.capability, "embedding")
       )
@@ -133,7 +101,7 @@ export const createKnowledgeBase = async ({
     .insert(knowledgeBase)
     .values({
       id: randomUUID(),
-      organizationId: organization.id,
+      organizationId,
       name: input.name,
       embeddingProviderId: embeddingProvider.id,
       createdAt: now,
@@ -155,22 +123,12 @@ export const createKnowledgeBase = async ({
 
 export const listKnowledgeBases = async ({
   db,
-  userId,
+  organizationId,
 }: ListKnowledgeBasesOptions): Promise<ListKnowledgeBasesResult> => {
-  // Get current organization
-  const organization = await getCurrentOrganization(db, userId);
-
-  // No organization for current user
-  if (!organization) {
-    return {
-      status: "organization_membership_required",
-    };
-  }
-
   const knowledgeBases = await db
     .select(knowledgeBaseSelection)
     .from(knowledgeBase)
-    .where(eq(knowledgeBase.organizationId, organization.id))
+    .where(eq(knowledgeBase.organizationId, organizationId))
     .orderBy(desc(knowledgeBase.createdAt));
 
   return {
@@ -182,18 +140,8 @@ export const listKnowledgeBases = async ({
 export const getKnowledgeBase = async ({
   db,
   knowledgeBaseId,
-  userId,
+  organizationId,
 }: GetKnowledgeBaseOptions): Promise<GetKnowledgeBaseResult> => {
-  // Get current organization
-  const organization = await getCurrentOrganization(db, userId);
-
-  // No organization for current user
-  if (!organization) {
-    return {
-      status: "organization_membership_required",
-    };
-  }
-
   const rows = await db
     .select({
       ...knowledgeBaseSelection,
@@ -214,7 +162,7 @@ export const getKnowledgeBase = async ({
     )
     .where(
       and(
-        eq(knowledgeBase.organizationId, organization.id),
+        eq(knowledgeBase.organizationId, organizationId),
         eq(knowledgeBase.id, knowledgeBaseId)
       )
     )

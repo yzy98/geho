@@ -3,6 +3,8 @@ import { Hono } from "hono";
 import type { CreateAppOptions } from "../app";
 import type { AppEnv } from "../context";
 import { requireAuth } from "../middleware/require-auth";
+import { requireOrganization } from "../middleware/require-organization";
+import { requireOrganizationPermission } from "../middleware/require-organization-permission";
 import { createKnowledgeBaseSchema } from "../schemas/knowledge-bases";
 import {
   createKnowledgeBase,
@@ -29,16 +31,6 @@ const createKnowledgeBaseValidator = zValidator(
   }
 );
 
-const organizationMembershipRequiredResponse = {
-  code: "ORGANIZATION_MEMBERSHIP_REQUIRED",
-  message: "Current user does not belong to an organization.",
-} as const;
-
-const insufficientRoleResponse = {
-  code: "INSUFFICIENT_ORGANIZATION_ROLE",
-  message: "Only the organization owner can create knowledge bases.",
-} as const;
-
 const invalidEmbeddingProviderResponse = {
   code: "INVALID_EMBEDDING_PROVIDER",
   message: "Selected embedding provider is invalid.",
@@ -55,70 +47,74 @@ export const createKnowledgeBasesRoute = ({
 }: CreateKnowledgeBasesRouteOptions) =>
   new Hono<AppEnv>()
     .use("*", requireAuth(auth))
-    .get("/", async (c) => {
-      const user = c.get("user");
+    .use("*", requireOrganization(auth))
+    .get(
+      "/",
+      requireOrganizationPermission(auth, {
+        knowledgeBase: ["read"],
+      }),
+      async (c) => {
+        const organization = c.get("organization");
 
-      const result = await listKnowledgeBases({
-        db,
-        userId: user.id,
-      });
+        const result = await listKnowledgeBases({
+          db,
+          organizationId: organization.id,
+        });
 
-      if (result.status === "organization_membership_required") {
-        return c.json(organizationMembershipRequiredResponse, 403);
+        return c.json({
+          knowledgeBases: result.knowledgeBases,
+        });
       }
+    )
+    .post(
+      "/",
+      requireOrganizationPermission(auth, {
+        knowledgeBase: ["create"],
+      }),
+      createKnowledgeBaseValidator,
+      async (c) => {
+        const organization = c.get("organization");
+        const input = c.req.valid("json");
 
-      return c.json({
-        knowledgeBases: result.knowledgeBases,
-      });
-    })
-    .post("/", createKnowledgeBaseValidator, async (c) => {
-      const user = c.get("user");
-      const input = c.req.valid("json");
+        const result = await createKnowledgeBase({
+          db,
+          input,
+          organizationId: organization.id,
+        });
 
-      const result = await createKnowledgeBase({
-        db,
-        input,
-        userId: user.id,
-      });
+        if (result.status === "invalid_embedding_provider") {
+          return c.json(invalidEmbeddingProviderResponse, 400);
+        }
 
-      if (result.status === "organization_membership_required") {
-        return c.json(organizationMembershipRequiredResponse, 403);
+        return c.json(
+          {
+            knowledgeBase: result.knowledgeBase,
+          },
+          201
+        );
       }
+    )
+    .get(
+      "/:knowledgeBaseId",
+      requireOrganizationPermission(auth, {
+        knowledgeBase: ["read"],
+      }),
+      async (c) => {
+        const organization = c.get("organization");
+        const knowledgeBaseId = c.req.param("knowledgeBaseId");
 
-      if (result.status === "insufficient_role") {
-        return c.json(insufficientRoleResponse, 403);
-      }
+        const result = await getKnowledgeBase({
+          db,
+          knowledgeBaseId,
+          organizationId: organization.id,
+        });
 
-      if (result.status === "invalid_embedding_provider") {
-        return c.json(invalidEmbeddingProviderResponse, 400);
-      }
+        if (result.status === "not_found") {
+          return c.json(knowledgeBaseNotFoundResponse, 404);
+        }
 
-      return c.json(
-        {
+        return c.json({
           knowledgeBase: result.knowledgeBase,
-        },
-        201
-      );
-    })
-    .get("/:knowledgeBaseId", async (c) => {
-      const user = c.get("user");
-      const knowledgeBaseId = c.req.param("knowledgeBaseId");
-
-      const result = await getKnowledgeBase({
-        db,
-        knowledgeBaseId,
-        userId: user.id,
-      });
-
-      if (result.status === "organization_membership_required") {
-        return c.json(organizationMembershipRequiredResponse, 403);
+        });
       }
-
-      if (result.status === "not_found") {
-        return c.json(knowledgeBaseNotFoundResponse, 404);
-      }
-
-      return c.json({
-        knowledgeBase: result.knowledgeBase,
-      });
-    });
+    );
