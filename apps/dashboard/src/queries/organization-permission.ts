@@ -18,6 +18,9 @@ const permissionRequests = {
   createEmbedKey: {
     embedKey: ["create"],
   },
+  addOrganizationMember: {
+    member: ["create"],
+  },
 } satisfies Record<string, OrganizationPermissionRequest>;
 
 export type OrganizationPermission = keyof typeof permissionRequests;

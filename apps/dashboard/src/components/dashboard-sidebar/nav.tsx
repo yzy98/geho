@@ -13,6 +13,7 @@ import {
   Building2Icon,
   KeyRoundIcon,
   LayoutDashboardIcon,
+  UsersIcon,
 } from "lucide-react";
 
 interface NavProps {
@@ -59,6 +60,15 @@ export function WorkspaceNav({ pathname }: NavProps) {
             >
               <BotIcon />
               <span>Chatbots</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname === "/members"}
+              render={<Link to="/members" />}
+            >
+              <UsersIcon />
+              <span>Members</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
