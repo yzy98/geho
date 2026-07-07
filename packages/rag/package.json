@@ -1,0 +1,19 @@
+{
+  "name": "@heho/rag",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@langchain/textsplitters": "^1.0.1"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  }
+}
