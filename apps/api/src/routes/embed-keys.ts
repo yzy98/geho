@@ -63,7 +63,7 @@ export const createChatbotEmbedKeysRoute = ({
     .use("*", requireAuth(auth))
     .use("*", requireOrganization(auth))
     .get(
-      "/:chatbotId/embed-keys",
+      "/",
       requireOrganizationPermission(auth, {
         embedKey: ["read"],
       }),
@@ -88,7 +88,7 @@ export const createChatbotEmbedKeysRoute = ({
       }
     )
     .post(
-      "/:chatbotId/embed-keys",
+      "/",
       requireOrganizationPermission(auth, {
         embedKey: ["create"],
       }),

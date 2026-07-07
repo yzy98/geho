@@ -1,5 +1,9 @@
-import type { knowledgeSource, knowledgeSourceStatus } from "@heho/db/schema";
 import { z } from "zod";
+
+export const KnowledgeSourcesParamsSchema = z.object({
+  knowledgeBaseId: z.uuid("Knowledge base ID must be a valid UUID"),
+});
+
 export const createTextKnowledgeSourceSchema = z
   .object({
     title: z.string().trim().min(1).max(100),
@@ -18,11 +22,19 @@ export type CreateTextKnowledgeSourceInput = z.infer<
 >;
 
 export type KnowledgeSourceStatus =
-  (typeof knowledgeSourceStatus.enumValues)[number];
+  | "pending"
+  | "processing"
+  | "ready"
+  | "failed";
 
-export type KnowledgeSourceDto = Omit<
-  typeof knowledgeSource.$inferSelect,
-  "organizationId" | "rawContent"
-> & {
+export type KnowledgeSourceDto = {
+  id: string;
+  knowledgeBaseId: string;
+  title: string;
+  status: KnowledgeSourceStatus;
+  errorCode: string | null;
+  errorMessage: string | null;
   chunkCount: number;
+  createdAt: Date;
+  updatedAt: Date;
 };
