@@ -6,7 +6,7 @@ import {
   decodeEncryptionKey,
   decryptApiKey,
   encryptApiKey,
-} from "./api-key-encryption";
+} from "../lib/api-key-encryption";
 
 const createEncryptionKey = () => new Uint8Array(randomBytes(32));
 

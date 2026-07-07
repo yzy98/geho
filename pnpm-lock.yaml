@@ -80,6 +80,9 @@ importers:
       '@heho/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@heho/rag':
+        specifier: workspace:*
+        version: link:../../packages/rag
       '@heho/shared':
         specifier: workspace:*
         version: link:../../packages/shared

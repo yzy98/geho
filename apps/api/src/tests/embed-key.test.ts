@@ -4,7 +4,7 @@ import {
   getEmbedKeyPrefix,
   hashEmbedKey,
   isEmbedKey,
-} from "./embed-key";
+} from "../lib/embed-key";
 
 describe("embed key generation", () => {
   it("generates a valid key with 32 bytes of random payload", () => {

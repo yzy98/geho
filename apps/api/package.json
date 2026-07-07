@@ -21,6 +21,7 @@
     "@ai-sdk/openai": "^4.0.2",
     "@heho/auth": "workspace:*",
     "@heho/db": "workspace:*",
+    "@heho/rag": "workspace:*",
     "@heho/shared": "workspace:*",
     "@hono/node-server": "^2.0.5",
     "@hono/zod-validator": "^0.8.0",
