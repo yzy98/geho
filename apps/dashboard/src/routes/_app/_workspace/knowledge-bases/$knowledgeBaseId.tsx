@@ -1,6 +1,27 @@
+import { Alert, AlertDescription, AlertTitle } from "@heho/ui/components/alert";
+import { Badge } from "@heho/ui/components/badge";
+import { Button } from "@heho/ui/components/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@heho/ui/components/card";
+import { Separator } from "@heho/ui/components/separator";
+import { Skeleton } from "@heho/ui/components/skeleton";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, linkOptions } from "@tanstack/react-router";
+import { AlertTriangleIcon, PlusIcon } from "lucide-react";
+import { useState } from "react";
+import { CreateKnowledgeSourceDialog } from "@/components/dialogs/create-knowledge-source-dialog";
+import { useOrganizationPermission } from "@/hooks/use-organization-permission";
 import { knowledgeBaseDetailsQueryOptions } from "@/queries/knowledge-base";
+import {
+  type KnowledgeSource,
+  knowledgeSourcesQueryOptions,
+} from "@/queries/knowledge-source";
+import { organizationPermissionQueryOptions } from "@/queries/organization-permission";
 import type { DashboardBreadcrumbContext } from "@/routes/__root";
 
 export const Route = createFileRoute(
@@ -22,18 +43,34 @@ export const Route = createFileRoute(
     ],
   }),
   loader: ({ context, params }) =>
-    context.queryClient.ensureQueryData(
-      knowledgeBaseDetailsQueryOptions(
-        context.organization.id,
-        params.knowledgeBaseId
-      )
-    ),
+    Promise.all([
+      context.queryClient.ensureQueryData(
+        knowledgeBaseDetailsQueryOptions(
+          context.organization.id,
+          params.knowledgeBaseId
+        )
+      ),
+      context.queryClient.ensureQueryData(
+        knowledgeSourcesQueryOptions(
+          context.organization.id,
+          params.knowledgeBaseId
+        )
+      ),
+      context.queryClient.ensureQueryData(
+        organizationPermissionQueryOptions(
+          context.organization.id,
+          "createKnowledgeSource"
+        )
+      ),
+    ]),
   pendingComponent: KnowledgeBaseDetailsPending,
   errorComponent: KnowledgeBaseDetailsError,
   component: KnowledgeBaseDetailsPage,
 });
 
 function KnowledgeBaseDetailsPage() {
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
   const { knowledgeBaseId } = Route.useParams();
   const { organization } = Route.useRouteContext();
 
@@ -42,14 +79,164 @@ function KnowledgeBaseDetailsPage() {
   } = useSuspenseQuery(
     knowledgeBaseDetailsQueryOptions(organization.id, knowledgeBaseId)
   );
+  const {
+    data: { sources },
+  } = useSuspenseQuery(
+    knowledgeSourcesQueryOptions(organization.id, knowledgeBaseId)
+  );
 
-  return <div>{JSON.stringify(knowledgeBase)}</div>;
+  const canCreateKnowledgeSource = useOrganizationPermission(
+    "createKnowledgeSource"
+  );
+
+  return (
+    <>
+      <div className="flex flex-col gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{knowledgeBase.name}</CardTitle>
+            <CardDescription>
+              Embedding provider: {knowledgeBase.embeddingProvider.name} ·{" "}
+              {knowledgeBase.embeddingProvider.provider} ·{" "}
+              {knowledgeBase.embeddingProvider.model}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
+        <section className="flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold text-lg">Sources</h2>
+              <p className="text-muted-foreground text-sm">
+                Add text sources that will be embedded for retrieval.
+              </p>
+            </div>
+
+            {canCreateKnowledgeSource && (
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <PlusIcon data-icon="inline-start" />
+                Add source
+              </Button>
+            )}
+          </div>
+
+          {sources.length === 0 ? (
+            <SourcesEmptyAlert canCreate={canCreateKnowledgeSource} />
+          ) : (
+            <SourceList sources={sources} />
+          )}
+        </section>
+      </div>
+
+      {canCreateKnowledgeSource && (
+        <CreateKnowledgeSourceDialog
+          knowledgeBaseId={knowledgeBaseId}
+          onOpenChange={setCreateDialogOpen}
+          open={createDialogOpen}
+          organizationId={organization.id}
+        />
+      )}
+    </>
+  );
+}
+
+function SourcesEmptyAlert({ canCreate }: { canCreate: boolean }) {
+  return (
+    <Alert>
+      <AlertTriangleIcon />
+      <AlertTitle>No sources yet</AlertTitle>
+      <AlertDescription>
+        {canCreate
+          ? "Create your first source."
+          : "You do not have permission to create sources."}
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function SourceList({ sources }: { sources: KnowledgeSource[] }) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col">
+        {sources.map((source, index) => (
+          <div key={source.id}>
+            {index > 0 && <Separator />}
+            <div className="flex items-start justify-between gap-4 py-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="truncate font-medium">{source.title}</h3>
+                  <SourceStatusBadge status={source.status} />
+                </div>
+
+                <p className="text-muted-foreground text-sm">
+                  {source.chunkCount} chunks
+                </p>
+
+                {source.status === "failed" && source.errorMessage ? (
+                  <p className="mt-1 text-destructive text-sm">
+                    {source.errorMessage}
+                  </p>
+                ) : null}
+              </div>
+
+              <p className="shrink-0 text-muted-foreground text-xs">
+                {new Date(source.createdAt).toLocaleString()}
+              </p>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SourceStatusBadge({ status }: { status: KnowledgeSource["status"] }) {
+  switch (status) {
+    case "ready":
+      return <Badge variant="secondary">Ready</Badge>;
+    case "failed":
+      return <Badge variant="destructive">Failed</Badge>;
+    case "processing":
+      return <Badge variant="outline">Processing</Badge>;
+    case "pending":
+      return <Badge variant="outline">Pending</Badge>;
+    default:
+      return null;
+  }
 }
 
 function KnowledgeBaseDetailsError() {
-  return <div>ERROR</div>;
+  return (
+    <Alert>
+      <AlertTriangleIcon />
+      <AlertTitle>Unable to load knowledge base</AlertTitle>
+      <AlertDescription>
+        Check whether the knowledge base exists and you have access.
+      </AlertDescription>
+    </Alert>
+  );
 }
 
 function KnowledgeBaseDetailsPending() {
-  return <div>PENDING</div>;
+  return (
+    <div className="flex flex-col gap-4">
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-56" />
+          <Skeleton className="h-4 w-96" />
+        </CardHeader>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-4 w-72" />
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
