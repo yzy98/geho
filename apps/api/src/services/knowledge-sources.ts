@@ -129,7 +129,7 @@ const getKnowledgeBaseEmbeddingProvider = async ({
     )
     .limit(1);
 
-  return rows[0] ?? null;
+  return rows[0]?.embeddingProvider ?? null;
 };
 
 const claimPendingSourceForProcessing = async ({
@@ -463,13 +463,11 @@ export const processKnowledgeSource = async ({
     }
 
     // Get the matched knowledge base's embedding provider details
-    const matchedKnowledgeBase = await getKnowledgeBaseEmbeddingProvider({
+    const provider = await getKnowledgeBaseEmbeddingProvider({
       db,
       organizationId,
       knowledgeBaseId: source.knowledgeBaseId,
     });
-
-    const provider = matchedKnowledgeBase?.embeddingProvider;
 
     if (!provider) {
       await markSourceFailed({

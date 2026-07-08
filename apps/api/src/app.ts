@@ -55,7 +55,10 @@ export function createApp({
           startKnowledgeSourceIngestion,
         })
       )
-      .route("/knowledge-bases", createKnowledgeBasesRoute({ auth, db }))
+      .route(
+        "/knowledge-bases",
+        createKnowledgeBasesRoute({ auth, db, encryptionKey })
+      )
       .route(
         "/chatbots/:chatbotId/embed-keys",
         createChatbotEmbedKeysRoute({ auth, db })

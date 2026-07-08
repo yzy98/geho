@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const KnowledgeSourcesParamsSchema = z.object({
+export const knowledgeSourcesParamsSchema = z.object({
   knowledgeBaseId: z.uuid("Knowledge base ID must be a valid UUID"),
 });
 

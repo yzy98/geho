@@ -5,14 +5,39 @@ import type { AppEnv } from "../context";
 import { requireAuth } from "../middleware/require-auth";
 import { requireOrganization } from "../middleware/require-organization";
 import { requireOrganizationPermission } from "../middleware/require-organization-permission";
-import { createKnowledgeBaseSchema } from "../schemas/knowledge-bases";
+import {
+  createKnowledgeBaseSchema,
+  knowledgeBaseParamsSchema,
+  retrievalPreviewSchema,
+} from "../schemas/knowledge-bases";
 import {
   createKnowledgeBase,
   getKnowledgeBase,
   listKnowledgeBases,
 } from "../services/knowledge-bases";
+import { retrieveKnowledgeChunks } from "../services/knowledge-retrieval";
 
-type CreateKnowledgeBasesRouteOptions = Omit<CreateAppOptions, "encryptionKey">;
+type CreateKnowledgeBasesRouteOptions = Pick<
+  CreateAppOptions,
+  "auth" | "db" | "encryptionKey"
+>;
+
+const knowledgeBaseParamsValidator = zValidator(
+  "param",
+  knowledgeBaseParamsSchema,
+  (result, c) => {
+    if (!result.success) {
+      return c.json(
+        {
+          code: "VALIDATION_ERROR",
+          message: "Invalid knowledge base ID.",
+          issues: result.error.issues,
+        },
+        400
+      );
+    }
+  }
+);
 
 const createKnowledgeBaseValidator = zValidator(
   "json",
@@ -31,6 +56,23 @@ const createKnowledgeBaseValidator = zValidator(
   }
 );
 
+const retrievalPreviewValidator = zValidator(
+  "json",
+  retrievalPreviewSchema,
+  (result, c) => {
+    if (!result.success) {
+      return c.json(
+        {
+          code: "VALIDATION_ERROR",
+          message: "Invalid retrieval preview input.",
+          issues: result.error.issues,
+        },
+        400
+      );
+    }
+  }
+);
+
 const invalidEmbeddingProviderResponse = {
   code: "INVALID_EMBEDDING_PROVIDER",
   message: "Selected embedding provider is invalid.",
@@ -41,9 +83,15 @@ const knowledgeBaseNotFoundResponse = {
   message: "Knowledge base was not found.",
 } as const;
 
+const embeddingProviderFailedResponse = {
+  code: "EMBEDDING_PROVIDER_FAILED",
+  message: "Embedding provider failed.",
+} as const;
+
 export const createKnowledgeBasesRoute = ({
   auth,
   db,
+  encryptionKey,
 }: CreateKnowledgeBasesRouteOptions) =>
   new Hono<AppEnv>()
     .use("*", requireAuth(auth))
@@ -99,9 +147,10 @@ export const createKnowledgeBasesRoute = ({
       requireOrganizationPermission(auth, {
         knowledgeBase: ["read"],
       }),
+      knowledgeBaseParamsValidator,
       async (c) => {
         const organization = c.get("organization");
-        const knowledgeBaseId = c.req.param("knowledgeBaseId");
+        const { knowledgeBaseId } = c.req.valid("param");
 
         const result = await getKnowledgeBase({
           db,
@@ -115,6 +164,39 @@ export const createKnowledgeBasesRoute = ({
 
         return c.json({
           knowledgeBase: result.knowledgeBase,
+        });
+      }
+    )
+    .post(
+      "/:knowledgeBaseId/retrieval-preview",
+      requireOrganizationPermission(auth, {
+        knowledgeBase: ["read"],
+      }),
+      knowledgeBaseParamsValidator,
+      retrievalPreviewValidator,
+      async (c) => {
+        const organization = c.get("organization");
+        const { knowledgeBaseId } = c.req.valid("param");
+        const input = c.req.valid("json");
+
+        const result = await retrieveKnowledgeChunks({
+          db,
+          encryptionKey,
+          input,
+          knowledgeBaseId,
+          organizationId: organization.id,
+        });
+
+        if (result.status === "knowledge_base_not_found") {
+          return c.json(knowledgeBaseNotFoundResponse, 404);
+        }
+
+        if (result.status === "embedding_provider_failed") {
+          return c.json(embeddingProviderFailedResponse, 502);
+        }
+
+        return c.json({
+          chunks: result.chunks,
         });
       }
     );

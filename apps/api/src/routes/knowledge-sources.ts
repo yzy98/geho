@@ -8,7 +8,7 @@ import { requireOrganization } from "../middleware/require-organization";
 import { requireOrganizationPermission } from "../middleware/require-organization-permission";
 import {
   createTextKnowledgeSourceSchema,
-  KnowledgeSourcesParamsSchema,
+  knowledgeSourcesParamsSchema,
 } from "../schemas/knowledge-sources";
 import type { StartKnowledgeSourceIngestion } from "../services/knowledge-source-ingestion";
 import {
@@ -21,9 +21,10 @@ type CreateKnowledgeSourcesRouteOptions = {
   db: DbClient;
   startKnowledgeSourceIngestion: StartKnowledgeSourceIngestion;
 };
+
 const knowledgeSourcesParamsValidator = zValidator(
   "param",
-  KnowledgeSourcesParamsSchema,
+  knowledgeSourcesParamsSchema,
   (result, c) => {
     if (!result.success) {
       return c.json(
