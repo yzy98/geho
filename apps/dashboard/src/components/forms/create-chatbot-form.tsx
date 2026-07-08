@@ -195,7 +195,10 @@ export const CreateChatbotForm = ({
                     field.state.meta.isTouched && !field.state.meta.isValid;
 
                   return (
-                    <Field data-invalid={isInvalid}>
+                    <Field
+                      className="max-h-48 overflow-y-auto"
+                      data-invalid={isInvalid}
+                    >
                       <FieldLabel htmlFor={field.name}>
                         System instructions
                       </FieldLabel>

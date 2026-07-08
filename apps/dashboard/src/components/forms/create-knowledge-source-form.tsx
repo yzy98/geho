@@ -136,7 +136,10 @@ export const CreateKnowledgeSourceForm = ({
                     field.state.meta.isTouched && !field.state.meta.isValid;
 
                   return (
-                    <Field data-invalid={isInvalid}>
+                    <Field
+                      className="max-h-48 overflow-y-auto"
+                      data-invalid={isInvalid}
+                    >
                       <FieldLabel htmlFor={field.name}>Content</FieldLabel>
                       <Textarea
                         aria-invalid={isInvalid}

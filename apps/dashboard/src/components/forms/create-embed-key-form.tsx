@@ -146,7 +146,10 @@ export const CreateEmbedKeyForm = ({
                     field.state.meta.isTouched && !field.state.meta.isValid;
 
                   return (
-                    <Field data-invalid={isInvalid}>
+                    <Field
+                      className="max-h-36 overflow-y-auto"
+                      data-invalid={isInvalid}
+                    >
                       <FieldLabel htmlFor={field.name}>
                         Allowed domains
                       </FieldLabel>

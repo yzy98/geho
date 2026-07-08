@@ -933,26 +933,26 @@ instead of storing `embedding_provider_id`.
 ### Day 8: Thin End-to-End Text RAG Slice
 
 - [ ] Add the minimal schemas for:
-  - [ ] `knowledge_source`
-  - [ ] `knowledge_chunk`
+  - [x] `knowledge_source`
+  - [x] `knowledge_chunk`
   - [ ] `chat_session`
   - [ ] `chat_message`
   - [ ] `rag_trace`
-- [ ] Add a Knowledge Base-scoped text source API and Dashboard form.
-- [ ] Support `text` sources.
-- [ ] Implement deterministic chunking in `packages/rag`.
-- [ ] Generate Source embeddings through the Knowledge Base's configured
+- [x] Add a Knowledge Base-scoped text source API and Dashboard form.
+- [x] Support `text` sources.
+- [x] Implement deterministic chunking in `packages/rag`.
+- [x] Generate Source embeddings through the Knowledge Base's configured
       embedding Provider.
-- [ ] Store each Chunk's content and required vector embedding together in
+- [x] Store each Chunk's content and required vector embedding together in
       `knowledge_chunk`.
-- [ ] Validate the complete embedding batch before writing Knowledge Chunks.
-- [ ] Mark Sources as `ready` or `failed`; failed ingestion must not leave
+- [x] Validate the complete embedding batch before writing Knowledge Chunks.
+- [x] Mark Sources as `ready` or `failed`; failed ingestion must not leave
       retrievable partial chunks.
-- [ ] Resolve a Chatbot's Knowledge Base and embed visitor questions with the
+- [x] Resolve a Chatbot's Knowledge Base and embed visitor questions with the
       Knowledge Base's configured embedding Provider and model.
-- [ ] Retrieve top chunks only from the selected Knowledge Base.
-- [ ] Map retrieved chunks back to Sources.
-- [ ] Assemble the prompt in `packages/rag`.
+- [x] Retrieve top chunks only from the selected Knowledge Base.
+- [x] Map retrieved chunks back to Sources.
+- [x] Assemble the prompt in `packages/rag`.
 - [ ] Include Source titles and citation markers in the prompt context.
 - [ ] Call the Chatbot's chat Provider and save visitor and assistant messages.
 - [ ] Save a minimal RAG Trace in the same request lifecycle.
