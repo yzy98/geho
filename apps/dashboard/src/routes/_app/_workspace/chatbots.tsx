@@ -20,8 +20,14 @@ import {
   type ErrorComponentProps,
   linkOptions,
 } from "@tanstack/react-router";
-import { AlertTriangleIcon, KeyRoundIcon, PlusIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  BotMessageSquareIcon,
+  KeyRoundIcon,
+  PlusIcon,
+} from "lucide-react";
 import { useState } from "react";
+import { ChatbotAskPreviewDialog } from "@/components/dialogs/chatbot-ask-preview-dialog";
 import { CreateChatDialog } from "@/components/dialogs/create-chatbot-dialog";
 import { ManageChatbotEmbedKeysDialog } from "@/components/dialogs/manage-chatbot-embed-keys-dialog";
 import { useOrganizationPermission } from "@/hooks/use-organization-permission";
@@ -82,6 +88,9 @@ export const Route = createFileRoute("/_app/_workspace/chatbots")({
 function ChatbotsPage() {
   const [createChatbotDialogOpen, setCreateChatbotDialogOpen] = useState(false);
   const [managedChatbot, setManagedChatbot] = useState<Chatbot | null>(null);
+  const [previewedChatbot, setPreviewedChatbot] = useState<Chatbot | null>(
+    null
+  );
 
   const { organization } = Route.useRouteContext();
   const {
@@ -118,6 +127,7 @@ function ChatbotsPage() {
           chatbots={chatbots}
           knowledgeBases={knowledgeBases}
           onManageEmbedKeys={setManagedChatbot}
+          onPreviewChatbot={setPreviewedChatbot}
           providers={providers}
         />
       )}
@@ -145,6 +155,18 @@ function ChatbotsPage() {
           organizationId={organization.id}
         />
       )}
+
+      {previewedChatbot && (
+        <ChatbotAskPreviewDialog
+          chatbot={previewedChatbot}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPreviewedChatbot(null);
+            }
+          }}
+          open
+        />
+      )}
     </>
   );
 }
@@ -168,6 +190,7 @@ type ChatbotListProps = {
   providers: LlmProvider[];
   knowledgeBases: KnowledgeBase[];
   onManageEmbedKeys: (chatbot: Chatbot) => void;
+  onPreviewChatbot: (chatbot: Chatbot) => void;
 };
 
 function ChatbotList({
@@ -175,6 +198,7 @@ function ChatbotList({
   providers,
   knowledgeBases,
   onManageEmbedKeys,
+  onPreviewChatbot,
 }: ChatbotListProps) {
   const providersById = new Map(
     providers.map((provider) => [provider.id, provider])
@@ -192,6 +216,7 @@ function ChatbotList({
           key={chatbot.id}
           knowledgeBase={knowledgeBasesById.get(chatbot.knowledgeBaseId)}
           onManageEmbedKeys={onManageEmbedKeys}
+          onPreviewChatbot={onPreviewChatbot}
         />
       ))}
     </div>
@@ -203,6 +228,7 @@ type ChatbotCardProps = {
   chatProvider: LlmProvider | undefined;
   knowledgeBase: KnowledgeBase | undefined;
   onManageEmbedKeys: (chatbot: Chatbot) => void;
+  onPreviewChatbot: (chatbot: Chatbot) => void;
 };
 
 function ChatbotCard({
@@ -210,6 +236,7 @@ function ChatbotCard({
   chatProvider,
   knowledgeBase,
   onManageEmbedKeys,
+  onPreviewChatbot,
 }: ChatbotCardProps) {
   return (
     <Card>
@@ -236,7 +263,17 @@ function ChatbotCard({
         </dl>
       </CardContent>
 
-      <CardFooter>
+      <CardFooter className="flex flex-wrap gap-2">
+        <Button
+          onClick={() => onPreviewChatbot(chatbot)}
+          size="sm"
+          type="button"
+          variant="default"
+        >
+          <BotMessageSquareIcon data-icon="inline-start" />
+          Test
+        </Button>
+
         <Button
           onClick={() => onManageEmbedKeys(chatbot)}
           size="sm"

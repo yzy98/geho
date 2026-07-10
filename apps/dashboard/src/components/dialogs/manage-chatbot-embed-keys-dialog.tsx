@@ -21,13 +21,13 @@ import { useIsMobile } from "@heho/ui/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangleIcon, CopyIcon, KeyRoundIcon } from "lucide-react";
 import { useRef, useState } from "react";
+import { CreateEmbedKeyForm } from "@/components/forms/create-embed-key-form";
 import type { Chatbot } from "@/queries/chatbot";
 import {
   type CreateEmbedKeyResult,
   chatbotEmbedKeysQueryOptions,
   type EmbedKey,
 } from "@/queries/embed-key";
-import { CreateEmbedKeyForm } from "../forms/create-embed-key-form";
 
 type ManageChatbotEmbedKeysDialogProps = {
   open: boolean;
