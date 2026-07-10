@@ -1,13 +1,27 @@
 import { Toaster } from "@heho/ui/components/sonner";
 import type { QueryClient } from "@tanstack/react-query";
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import {
+  type CreateLinkProps,
+  createRootRouteWithContext,
+  Outlet,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { authClient } from "@/lib/auth-client";
 
-interface RouterContext {
+export type DashboardBreadcrumb = {
+  id: string;
+  label: string;
+  linkOptions: Omit<CreateLinkProps, "children">;
+};
+
+export type DashboardBreadcrumbContext = {
+  breadcrumbs: DashboardBreadcrumb[];
+};
+
+type RouterContext = DashboardBreadcrumbContext & {
   auth: ReturnType<typeof authClient.useSession>;
   queryClient: QueryClient;
-}
+};
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,

@@ -1,10 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { DbClient } from "@heho/db";
-import { and, desc, eq, inArray } from "@heho/db/helper";
-import { chatbot, llmProvider } from "@heho/db/schema";
-import { hasOwnerRole } from "../lib/helpers";
+import { and, desc, eq } from "@heho/db/helper";
+import { chatbot, knowledgeBase, llmProvider } from "@heho/db/schema";
 import type { CreateChatbotInput } from "../schemas/chatbots";
-import { getCurrentOrganization } from "./organizations";
 
 export type ChatbotDto = Omit<
   typeof chatbot.$inferSelect,
@@ -14,12 +12,12 @@ export type ChatbotDto = Omit<
 export type CreateChatbotOptions = {
   db: DbClient;
   input: CreateChatbotInput;
-  userId: string;
+  organizationId: string;
 };
 
 export type ListChatbotsOptions = {
   db: DbClient;
-  userId: string;
+  organizationId: string;
 };
 
 export type CreateChatbotResult =
@@ -28,33 +26,23 @@ export type CreateChatbotResult =
       chatbot: ChatbotDto;
     }
   | {
-      status: "organization_membership_required";
-    }
-  | {
-      status: "insufficient_role";
-    }
-  | {
       status: "invalid_chat_provider";
     }
   | {
-      status: "invalid_embedding_provider";
+      status: "invalid_knowledge_base";
     };
 
-export type ListChatbotsResult =
-  | {
-      status: "success";
-      chatbots: ChatbotDto[];
-    }
-  | {
-      status: "organization_membership_required";
-    };
+export type ListChatbotsResult = {
+  status: "success";
+  chatbots: ChatbotDto[];
+};
 
 const chatbotSelection = {
   id: chatbot.id,
   name: chatbot.name,
   systemInstructions: chatbot.systemInstructions,
   chatProviderId: chatbot.chatProviderId,
-  embeddingProviderId: chatbot.embeddingProviderId,
+  knowledgeBaseId: chatbot.knowledgeBaseId,
   createdAt: chatbot.createdAt,
   updatedAt: chatbot.updatedAt,
 };
@@ -62,65 +50,48 @@ const chatbotSelection = {
 export const createChatbot = async ({
   db,
   input,
-  userId,
+  organizationId,
 }: CreateChatbotOptions): Promise<CreateChatbotResult> => {
-  // Get current organization
-  const organization = await getCurrentOrganization(db, userId);
-
-  // No organization for current user
-  if (!organization) {
-    return {
-      status: "organization_membership_required",
-    };
-  }
-
-  // Only the organization owner can create chatbot
-  if (!hasOwnerRole(organization.role)) {
-    return {
-      status: "insufficient_role",
-    };
-  }
-
-  // Get llm-providers within current organization
-  // Need to be either matched with input chatProvider or embeddingProvider
-  const llmProviders = await db
+  // Check if the input chat provider exists in the current organization
+  const matchedChatProviders = await db
     .select({
       id: llmProvider.id,
-      capability: llmProvider.capability,
     })
     .from(llmProvider)
     .where(
       and(
-        eq(llmProvider.organizationId, organization.id),
-        inArray(llmProvider.id, [
-          input.chatProviderId,
-          input.embeddingProviderId,
-        ])
+        eq(llmProvider.organizationId, organizationId),
+        eq(llmProvider.id, input.chatProviderId),
+        eq(llmProvider.capability, "chat")
       )
-    );
+    )
+    .limit(1);
 
-  // Get chat provider
-  const chatProvider = llmProviders.find(
-    (provider) =>
-      provider.id === input.chatProviderId && provider.capability === "chat"
-  );
+  const matchedChatProvider = matchedChatProviders[0];
 
-  if (!chatProvider) {
+  if (!matchedChatProvider) {
     return {
       status: "invalid_chat_provider",
     };
   }
 
-  // Get embedding provider
-  const embeddingProvider = llmProviders.find(
-    (provider) =>
-      provider.id === input.embeddingProviderId &&
-      provider.capability === "embedding"
-  );
+  // Check if the input knowledge base exists in the current organization
+  const matchedKnowledgeBases = await db
+    .select({ id: knowledgeBase.id })
+    .from(knowledgeBase)
+    .where(
+      and(
+        eq(knowledgeBase.organizationId, organizationId),
+        eq(knowledgeBase.id, input.knowledgeBaseId)
+      )
+    )
+    .limit(1);
 
-  if (!embeddingProvider) {
+  const matchedKnowledgeBase = matchedKnowledgeBases[0];
+
+  if (!matchedKnowledgeBase) {
     return {
-      status: "invalid_embedding_provider",
+      status: "invalid_knowledge_base",
     };
   }
 
@@ -131,11 +102,11 @@ export const createChatbot = async ({
     .insert(chatbot)
     .values({
       id: randomUUID(),
-      organizationId: organization.id,
+      organizationId,
       name: input.name,
       systemInstructions: input.systemInstructions,
-      chatProviderId: chatProvider.id,
-      embeddingProviderId: embeddingProvider.id,
+      chatProviderId: matchedChatProvider.id,
+      knowledgeBaseId: matchedKnowledgeBase.id,
       createdAt: now,
       updatedAt: now,
     })
@@ -155,22 +126,12 @@ export const createChatbot = async ({
 
 export const listChatbots = async ({
   db,
-  userId,
+  organizationId,
 }: ListChatbotsOptions): Promise<ListChatbotsResult> => {
-  // Get current organization
-  const organization = await getCurrentOrganization(db, userId);
-
-  // No organization for current user
-  if (!organization) {
-    return {
-      status: "organization_membership_required",
-    };
-  }
-
   const chatbots = await db
     .select(chatbotSelection)
     .from(chatbot)
-    .where(eq(chatbot.organizationId, organization.id))
+    .where(eq(chatbot.organizationId, organizationId))
     .orderBy(desc(chatbot.createdAt));
 
   return {

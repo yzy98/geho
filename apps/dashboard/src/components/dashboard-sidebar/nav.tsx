@@ -9,9 +9,11 @@ import {
 import { Link } from "@tanstack/react-router";
 import {
   BotIcon,
+  BrainCircuitIcon,
   Building2Icon,
   KeyRoundIcon,
   LayoutDashboardIcon,
+  UsersIcon,
 } from "lucide-react";
 
 interface NavProps {
@@ -44,11 +46,29 @@ export function WorkspaceNav({ pathname }: NavProps) {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
+              isActive={pathname === "/knowledge-bases"}
+              render={<Link to="/knowledge-bases" />}
+            >
+              <BrainCircuitIcon />
+              <span>Knowledge Bases</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
               isActive={pathname === "/chatbots"}
               render={<Link to="/chatbots" />}
             >
               <BotIcon />
               <span>Chatbots</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={pathname === "/members"}
+              render={<Link to="/members" />}
+            >
+              <UsersIcon />
+              <span>Members</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

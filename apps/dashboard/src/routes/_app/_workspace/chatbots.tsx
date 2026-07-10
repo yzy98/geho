@@ -18,22 +18,44 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   createFileRoute,
   type ErrorComponentProps,
+  linkOptions,
 } from "@tanstack/react-router";
-import { AlertTriangleIcon, KeyRoundIcon, PlusIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  BotMessageSquareIcon,
+  KeyRoundIcon,
+  PlusIcon,
+} from "lucide-react";
 import { useState } from "react";
+import { ChatbotAskPreviewDialog } from "@/components/dialogs/chatbot-ask-preview-dialog";
 import { CreateChatDialog } from "@/components/dialogs/create-chatbot-dialog";
 import { ManageChatbotEmbedKeysDialog } from "@/components/dialogs/manage-chatbot-embed-keys-dialog";
-import { hasOwnerRole } from "@/lib/utils";
+import { useOrganizationPermission } from "@/hooks/use-organization-permission";
 import { type Chatbot, chatbotsQueryOptions } from "@/queries/chatbot";
+import {
+  type KnowledgeBase,
+  knowledgeBasesQueryOptions,
+} from "@/queries/knowledge-base";
 import {
   type LlmProvider,
   llmProvidersQueryOptions,
 } from "@/queries/llm-provider";
+import { organizationPermissionQueryOptions } from "@/queries/organization-permission";
+import type { DashboardBreadcrumbContext } from "@/routes/__root";
 
 export const Route = createFileRoute("/_app/_workspace/chatbots")({
-  staticData: {
-    breadcrumb: "Chatbots",
-  },
+  context: ({ context }): DashboardBreadcrumbContext => ({
+    breadcrumbs: [
+      ...context.breadcrumbs,
+      {
+        id: "chatbots",
+        label: "Chatbots",
+        linkOptions: linkOptions({
+          to: "/chatbots",
+        }),
+      },
+    ],
+  }),
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(
@@ -41,6 +63,21 @@ export const Route = createFileRoute("/_app/_workspace/chatbots")({
       ),
       context.queryClient.ensureQueryData(
         llmProvidersQueryOptions(context.organization.id)
+      ),
+      context.queryClient.ensureQueryData(
+        knowledgeBasesQueryOptions(context.organization.id)
+      ),
+      context.queryClient.ensureQueryData(
+        organizationPermissionQueryOptions(
+          context.organization.id,
+          "createChatbot"
+        )
+      ),
+      context.queryClient.ensureQueryData(
+        organizationPermissionQueryOptions(
+          context.organization.id,
+          "createEmbedKey"
+        )
       ),
     ]),
   pendingComponent: ChatbotsPending,
@@ -51,6 +88,9 @@ export const Route = createFileRoute("/_app/_workspace/chatbots")({
 function ChatbotsPage() {
   const [createChatbotDialogOpen, setCreateChatbotDialogOpen] = useState(false);
   const [managedChatbot, setManagedChatbot] = useState<Chatbot | null>(null);
+  const [previewedChatbot, setPreviewedChatbot] = useState<Chatbot | null>(
+    null
+  );
 
   const { organization } = Route.useRouteContext();
   const {
@@ -59,8 +99,12 @@ function ChatbotsPage() {
   const {
     data: { providers },
   } = useSuspenseQuery(llmProvidersQueryOptions(organization.id));
+  const {
+    data: { knowledgeBases },
+  } = useSuspenseQuery(knowledgeBasesQueryOptions(organization.id));
 
-  const canCreate = hasOwnerRole(organization.role);
+  const canCreateChatbot = useOrganizationPermission("createChatbot");
+  const canCreateEmbedKey = useOrganizationPermission("createEmbedKey");
 
   return (
     <>
@@ -68,7 +112,7 @@ function ChatbotsPage() {
         <p className="text-muted-foreground text-sm">
           Configure your chatbots.
         </p>
-        {canCreate && (
+        {canCreateChatbot && (
           <Button onClick={() => setCreateChatbotDialogOpen(true)}>
             <PlusIcon data-icon="inline-start" />
             Add chatbot
@@ -77,17 +121,20 @@ function ChatbotsPage() {
       </div>
 
       {chatbots.length === 0 ? (
-        <ChatbotsEmptyAlert canCreate={canCreate} />
+        <ChatbotsEmptyAlert canCreate={canCreateChatbot} />
       ) : (
         <ChatbotList
           chatbots={chatbots}
+          knowledgeBases={knowledgeBases}
           onManageEmbedKeys={setManagedChatbot}
+          onPreviewChatbot={setPreviewedChatbot}
           providers={providers}
         />
       )}
 
-      {canCreate && (
+      {canCreateChatbot && (
         <CreateChatDialog
+          knowledgeBases={knowledgeBases}
           onOpenChange={setCreateChatbotDialogOpen}
           open={createChatbotDialogOpen}
           organizationId={organization.id}
@@ -97,7 +144,7 @@ function ChatbotsPage() {
 
       {managedChatbot && (
         <ManageChatbotEmbedKeysDialog
-          canCreate={canCreate}
+          canCreate={canCreateEmbedKey}
           chatbot={managedChatbot}
           onOpenChange={(open) => {
             if (!open) {
@@ -106,6 +153,18 @@ function ChatbotsPage() {
           }}
           open
           organizationId={organization.id}
+        />
+      )}
+
+      {previewedChatbot && (
+        <ChatbotAskPreviewDialog
+          chatbot={previewedChatbot}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPreviewedChatbot(null);
+            }
+          }}
+          open
         />
       )}
     </>
@@ -120,7 +179,7 @@ function ChatbotsEmptyAlert({ canCreate }: { canCreate: boolean }) {
       <AlertDescription>
         {canCreate
           ? "Create your first chatbot."
-          : "The organization owner must create the first chatbot."}
+          : "You do not have permission to create chatbots."}
       </AlertDescription>
     </Alert>
   );
@@ -129,16 +188,23 @@ function ChatbotsEmptyAlert({ canCreate }: { canCreate: boolean }) {
 type ChatbotListProps = {
   chatbots: Chatbot[];
   providers: LlmProvider[];
+  knowledgeBases: KnowledgeBase[];
   onManageEmbedKeys: (chatbot: Chatbot) => void;
+  onPreviewChatbot: (chatbot: Chatbot) => void;
 };
 
 function ChatbotList({
   chatbots,
   providers,
+  knowledgeBases,
   onManageEmbedKeys,
+  onPreviewChatbot,
 }: ChatbotListProps) {
   const providersById = new Map(
     providers.map((provider) => [provider.id, provider])
+  );
+  const knowledgeBasesById = new Map(
+    knowledgeBases.map((knowledgeBase) => [knowledgeBase.id, knowledgeBase])
   );
 
   return (
@@ -146,18 +212,11 @@ function ChatbotList({
       {chatbots.map((chatbot) => (
         <ChatbotCard
           chatbot={chatbot}
-          chatProvider={
-            chatbot.chatProviderId
-              ? providersById.get(chatbot.chatProviderId)
-              : undefined
-          }
-          embeddingProvider={
-            chatbot.embeddingProviderId
-              ? providersById.get(chatbot.embeddingProviderId)
-              : undefined
-          }
+          chatProvider={providersById.get(chatbot.chatProviderId)}
           key={chatbot.id}
+          knowledgeBase={knowledgeBasesById.get(chatbot.knowledgeBaseId)}
           onManageEmbedKeys={onManageEmbedKeys}
+          onPreviewChatbot={onPreviewChatbot}
         />
       ))}
     </div>
@@ -167,15 +226,17 @@ function ChatbotList({
 type ChatbotCardProps = {
   chatbot: Chatbot;
   chatProvider: LlmProvider | undefined;
-  embeddingProvider: LlmProvider | undefined;
+  knowledgeBase: KnowledgeBase | undefined;
   onManageEmbedKeys: (chatbot: Chatbot) => void;
+  onPreviewChatbot: (chatbot: Chatbot) => void;
 };
 
 function ChatbotCard({
   chatbot,
   chatProvider,
-  embeddingProvider,
+  knowledgeBase,
   onManageEmbedKeys,
+  onPreviewChatbot,
 }: ChatbotCardProps) {
   return (
     <Card>
@@ -188,18 +249,31 @@ function ChatbotCard({
 
       <CardContent>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-          <dt className="text-muted-foreground">Chat LLM provider</dt>
+          <dt className="text-muted-foreground">Chat provider</dt>
           <dd className="truncate text-right">
             {formatProvider(chatProvider)}
           </dd>
-          <dt className="text-muted-foreground">Embedding LLM provider</dt>
-          <dd className="truncate text-right">
-            {formatProvider(embeddingProvider)}
+          <dt className="text-muted-foreground">Knowledge base</dt>
+          <dd
+            className="truncate text-right"
+            title={knowledgeBase?.name ?? "Knowledge base missing"}
+          >
+            {knowledgeBase?.name ?? "Knowledge base missing"}
           </dd>
         </dl>
       </CardContent>
 
-      <CardFooter>
+      <CardFooter className="flex flex-wrap gap-2">
+        <Button
+          onClick={() => onPreviewChatbot(chatbot)}
+          size="sm"
+          type="button"
+          variant="default"
+        >
+          <BotMessageSquareIcon data-icon="inline-start" />
+          Test
+        </Button>
+
         <Button
           onClick={() => onManageEmbedKeys(chatbot)}
           size="sm"

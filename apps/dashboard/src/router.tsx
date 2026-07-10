@@ -6,16 +6,14 @@ export const router = createRouter({
   routeTree,
   defaultPreload: "intent",
   context: {
-    queryClient,
     auth: undefined!,
+    queryClient,
+    breadcrumbs: [],
   },
 });
 
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
-  }
-  interface StaticDataRouteOption {
-    breadcrumb?: string;
   }
 }

@@ -1,6 +1,7 @@
 import { ResponsiveDialog } from "@heho/ui/components/responsive-dialog";
 import { useIsMobile } from "@heho/ui/hooks/use-mobile";
 import { CreateChatbotForm } from "@/components/forms/create-chatbot-form";
+import type { KnowledgeBase } from "@/queries/knowledge-base";
 import type { LlmProvider } from "@/queries/llm-provider";
 
 type CreateChatDialogProps = {
@@ -8,6 +9,7 @@ type CreateChatDialogProps = {
   onOpenChange: (open: boolean) => void;
   organizationId: string;
   providers: LlmProvider[];
+  knowledgeBases: KnowledgeBase[];
 };
 
 export const CreateChatDialog = ({
@@ -15,6 +17,7 @@ export const CreateChatDialog = ({
   onOpenChange,
   organizationId,
   providers,
+  knowledgeBases,
 }: CreateChatDialogProps) => {
   const isMobile = useIsMobile();
 
@@ -27,6 +30,7 @@ export const CreateChatDialog = ({
     >
       <CreateChatbotForm
         className={isMobile ? "px-4" : undefined}
+        knowledgeBases={knowledgeBases}
         onSuccess={() => onOpenChange(false)}
         organizationId={organizationId}
         providers={providers}

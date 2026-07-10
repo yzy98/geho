@@ -14,7 +14,8 @@
       },
       "style": {
         "useConsistentTypeDefinitions": "off",
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "noNestedTernary": "off"
       }
     }
   },

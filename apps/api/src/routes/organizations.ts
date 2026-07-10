@@ -3,10 +3,13 @@ import { Hono } from "hono";
 import type { CreateAppOptions } from "../app";
 import type { AppEnv } from "../context";
 import { requireAuth } from "../middleware/require-auth";
+import { requireOrganization } from "../middleware/require-organization";
+import { requireOrganizationPermission } from "../middleware/require-organization-permission";
+import { addOrganizationMemberSchema } from "../schemas/organization-members";
 import { createOrganizationSchema } from "../schemas/organizations";
+import { addOrganizationMember } from "../services/organization-members";
 import {
   createInitialOrganization,
-  getCurrentOrganization,
   hasAnyOrganization,
 } from "../services/organizations";
 
@@ -29,6 +32,43 @@ const createOrganizationValidator = zValidator(
   }
 );
 
+const addOrganizationMemberValidator = zValidator(
+  "json",
+  addOrganizationMemberSchema,
+  (result, c) => {
+    if (!result.success) {
+      return c.json(
+        {
+          code: "VALIDATION_ERROR",
+          message: "Invalid organization member input.",
+          issues: result.error.issues,
+        },
+        400
+      );
+    }
+  }
+);
+
+const organizationMembershipRequiredResponse = {
+  code: "ORGANIZATION_MEMBERSHIP_REQUIRED",
+  message: "An organization already exists. Ask an owner to add the user.",
+} as const;
+
+const organizationOnboardingRequiredResponse = {
+  code: "ORGANIZATION_ONBOARDING_REQUIRED",
+  message: "Create an organization to continue.",
+} as const;
+
+const userNotFoundResponse = {
+  code: "USER_NOT_FOUND",
+  message: "No registered user was found for this email.",
+} as const;
+
+const userAlreadyOrganizationMemberResponse = {
+  code: "USER_ALREADY_ORGANIZATION_MEMBER",
+  message: "This user is already an organization member.",
+} as const;
+
 export const createOrganizationsRoute = ({
   auth,
   db,
@@ -36,40 +76,28 @@ export const createOrganizationsRoute = ({
   new Hono<AppEnv>()
     .use("*", requireAuth(auth))
     .get("/current", async (c) => {
-      const user = c.get("user");
+      const organizations = await auth.api.listOrganizations({
+        headers: c.req.raw.headers,
+      });
 
-      // Get the current user's organization
-      const userOrganization = await getCurrentOrganization(db, user.id);
+      // One tenant
+      const organization = organizations[0];
 
-      // User belongs to no organization
-      if (!userOrganization) {
-        const organizationExists = await hasAnyOrganization(db);
-
-        // Organization exists, user does not belong to any
-        if (organizationExists) {
-          return c.json(
-            {
-              code: "ORGANIZATION_MEMBERSHIP_REQUIRED",
-              message:
-                "An organization already exists. Ask an owner to invite this user.",
-            },
-            403
-          );
-        }
-
-        // Organization not exists, and user does not belong to any
-        return c.json(
-          {
-            code: "ORGANIZATION_ONBOARDING_REQUIRED",
-            message: "Create an organization to continue.",
-          },
-          403
-        );
+      if (organization) {
+        return c.json({
+          organization,
+        });
       }
 
-      return c.json({
-        organization: userOrganization,
-      });
+      const organizationExists = await hasAnyOrganization(db);
+
+      // Organization exists, user does not belong to any
+      if (organizationExists) {
+        return c.json(organizationMembershipRequiredResponse, 403);
+      }
+
+      // Organization not exists, and user does not belong to any
+      return c.json(organizationOnboardingRequiredResponse, 403);
     })
     .post("/", createOrganizationValidator, async (c) => {
       const user = c.get("user");
@@ -78,6 +106,7 @@ export const createOrganizationsRoute = ({
       const result = await createInitialOrganization({
         auth,
         db,
+        headers: c.req.raw.headers,
         input,
         userId: user.id,
       });
@@ -94,14 +123,7 @@ export const createOrganizationsRoute = ({
       }
 
       if (result.status === "organization_membership_required") {
-        return c.json(
-          {
-            code: "ORGANIZATION_MEMBERSHIP_REQUIRED",
-            message:
-              "An organization already exists. Ask an owner to invite this user.",
-          },
-          403
-        );
+        return c.json(organizationMembershipRequiredResponse, 403);
       }
 
       return c.json(
@@ -110,4 +132,66 @@ export const createOrganizationsRoute = ({
         },
         201
       );
-    });
+    })
+    .get("/members", requireOrganization(auth), async (c) => {
+      const organization = c.get("organization");
+
+      const result = await auth.api.listMembers({
+        headers: c.req.raw.headers,
+        query: {
+          organizationId: organization.id,
+          limit: 100,
+          offset: 0,
+          sortBy: "createdAt",
+          sortDirection: "desc",
+        },
+      });
+
+      return c.json({
+        members: result.members.map((member) => ({
+          id: member.id,
+          role: member.role,
+          createdAt: member.createdAt,
+          user: {
+            name: member.user.name,
+            email: member.user.email,
+            image: member.user.image ?? null,
+          },
+        })),
+        total: result.total,
+      });
+    })
+    .post(
+      "/members",
+      requireOrganization(auth),
+      requireOrganizationPermission(auth, {
+        member: ["create"],
+      }),
+      addOrganizationMemberValidator,
+      async (c) => {
+        const organization = c.get("organization");
+        const input = c.req.valid("json");
+
+        const result = await addOrganizationMember({
+          auth,
+          db,
+          input,
+          organizationId: organization.id,
+        });
+
+        if (result.status === "user_not_found") {
+          return c.json(userNotFoundResponse, 404);
+        }
+
+        if (result.status === "already_a_member") {
+          return c.json(userAlreadyOrganizationMemberResponse, 409);
+        }
+
+        return c.json(
+          {
+            member: result.member,
+          },
+          201
+        );
+      }
+    );

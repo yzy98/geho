@@ -17,24 +17,44 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   createFileRoute,
   type ErrorComponentProps,
+  linkOptions,
 } from "@tanstack/react-router";
 import { AlertTriangleIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { CreateLlmProviderDialog } from "@/components/dialogs/create-llm-provider-dialog";
-import { hasOwnerRole } from "@/lib/utils";
+import { useOrganizationPermission } from "@/hooks/use-organization-permission";
 import {
   type LlmProvider,
   llmProvidersQueryOptions,
 } from "@/queries/llm-provider";
+import { organizationPermissionQueryOptions } from "@/queries/organization-permission";
+import type { DashboardBreadcrumbContext } from "@/routes/__root";
 
 export const Route = createFileRoute("/_app/_workspace/providers")({
-  staticData: {
-    breadcrumb: "Providers",
-  },
+  context: ({ context }): DashboardBreadcrumbContext => ({
+    breadcrumbs: [
+      ...context.breadcrumbs,
+      {
+        id: "providers",
+        label: "Providers",
+        linkOptions: linkOptions({
+          to: "/providers",
+        }),
+      },
+    ],
+  }),
   loader: ({ context }) =>
-    context.queryClient.ensureQueryData(
-      llmProvidersQueryOptions(context.organization.id)
-    ),
+    Promise.all([
+      context.queryClient.ensureQueryData(
+        llmProvidersQueryOptions(context.organization.id)
+      ),
+      context.queryClient.ensureQueryData(
+        organizationPermissionQueryOptions(
+          context.organization.id,
+          "createLlmProvider"
+        )
+      ),
+    ]),
   pendingComponent: ProvidersPending,
   errorComponent: ProvidersError,
   component: ProvidersPage,
@@ -48,7 +68,7 @@ function ProvidersPage() {
     data: { providers },
   } = useSuspenseQuery(llmProvidersQueryOptions(organization.id));
 
-  const canCreate = hasOwnerRole(organization.role);
+  const canCreateProvider = useOrganizationPermission("createLlmProvider");
 
   return (
     <>
@@ -56,7 +76,7 @@ function ProvidersPage() {
         <p className="text-muted-foreground text-sm">
           Configure model providers used by your chatbots.
         </p>
-        {canCreate && (
+        {canCreateProvider && (
           <Button onClick={() => setCreateDialogOpen(true)}>
             <PlusIcon data-icon="inline-start" />
             Add provider
@@ -65,12 +85,12 @@ function ProvidersPage() {
       </div>
 
       {providers.length === 0 ? (
-        <ProvidersEmptyAlert canCreate={canCreate} />
+        <ProvidersEmptyAlert canCreate={canCreateProvider} />
       ) : (
         <ProviderList providers={providers} />
       )}
 
-      {canCreate && (
+      {canCreateProvider && (
         <CreateLlmProviderDialog
           onOpenChange={setCreateDialogOpen}
           open={createDialogOpen}
@@ -89,7 +109,7 @@ function ProvidersEmptyAlert({ canCreate }: { canCreate: boolean }) {
       <AlertDescription>
         {canCreate
           ? "Configure a model provider."
-          : "The organization owner must configure the model providers."}
+          : "You do not have permission to configure model providers."}
       </AlertDescription>
     </Alert>
   );

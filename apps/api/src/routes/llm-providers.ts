@@ -3,6 +3,8 @@ import { Hono } from "hono";
 import type { CreateAppOptions } from "../app";
 import type { AppEnv } from "../context";
 import { requireAuth } from "../middleware/require-auth";
+import { requireOrganization } from "../middleware/require-organization";
+import { requireOrganizationPermission } from "../middleware/require-organization-permission";
 import { createLlmProviderSchema } from "../schemas/llm-providers";
 import { createLlmProvider, listLlmProviders } from "../services/llm-providers";
 
@@ -25,16 +27,6 @@ const createLlmProviderValidator = zValidator(
   }
 );
 
-const organizationMembershipRequiredResponse = {
-  code: "ORGANIZATION_MEMBERSHIP_REQUIRED",
-  message: "Current user does not belong to an organization.",
-} as const;
-
-const insufficientRoleResponse = {
-  code: "INSUFFICIENT_ORGANIZATION_ROLE",
-  message: "Only the organization owner can create LLM providers.",
-} as const;
-
 export const createLlmProvidersRoute = ({
   auth,
   db,
@@ -42,45 +34,47 @@ export const createLlmProvidersRoute = ({
 }: CreateLlmProvidersRouteOptions) =>
   new Hono<AppEnv>()
     .use("*", requireAuth(auth))
-    .get("/", async (c) => {
-      const user = c.get("user");
+    .use("*", requireOrganization(auth))
+    .get(
+      "/",
+      requireOrganizationPermission(auth, {
+        llmProvider: ["read"],
+      }),
+      async (c) => {
+        const organization = c.get("organization");
 
-      const result = await listLlmProviders({
-        db,
-        userId: user.id,
-      });
+        const result = await listLlmProviders({
+          db,
+          organizationId: organization.id,
+        });
 
-      if (result.status === "organization_membership_required") {
-        return c.json(organizationMembershipRequiredResponse, 403);
+        return c.json({
+          providers: result.providers,
+        });
       }
+    )
+    .post(
+      "/",
+      requireOrganizationPermission(auth, {
+        llmProvider: ["create"],
+      }),
+      createLlmProviderValidator,
+      async (c) => {
+        const organization = c.get("organization");
+        const input = c.req.valid("json");
 
-      return c.json({
-        providers: result.providers,
-      });
-    })
-    .post("/", createLlmProviderValidator, async (c) => {
-      const user = c.get("user");
-      const input = c.req.valid("json");
+        const result = await createLlmProvider({
+          db,
+          encryptionKey,
+          input,
+          organizationId: organization.id,
+        });
 
-      const result = await createLlmProvider({
-        db,
-        encryptionKey,
-        input,
-        userId: user.id,
-      });
-
-      if (result.status === "organization_membership_required") {
-        return c.json(organizationMembershipRequiredResponse, 403);
+        return c.json(
+          {
+            provider: result.provider,
+          },
+          201
+        );
       }
-
-      if (result.status === "insufficient_role") {
-        return c.json(insufficientRoleResponse, 403);
-      }
-
-      return c.json(
-        {
-          provider: result.provider,
-        },
-        201
-      );
-    });
+    );

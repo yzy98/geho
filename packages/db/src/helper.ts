@@ -1,1 +1,11 @@
-export { and, desc, eq, inArray, sql } from "drizzle-orm";
+export {
+  and,
+  cosineDistance,
+  count,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  sql,
+} from "drizzle-orm";

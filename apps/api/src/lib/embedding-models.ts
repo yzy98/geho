@@ -20,7 +20,7 @@ export type ResolvedEmbeddingModel = {
   [TProvider in SupportedEmbeddingModelProvider]: ResolvedEmbeddingModelFor<TProvider>;
 }[SupportedEmbeddingModelProvider];
 
-const assertUnsupportedProvider = (provider: never): never => {
+export const assertUnsupportedProvider = (provider: never): never => {
   throw new Error(`Unsupported provider: ${provider}`);
 };
 

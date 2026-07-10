@@ -53,6 +53,15 @@ async function getCurrentOrganizationResult() {
   };
 }
 
+type OrganizationQueryResult = Awaited<
+  ReturnType<typeof getCurrentOrganizationResult>
+>;
+
+export type CurrentOrganization = Extract<
+  OrganizationQueryResult,
+  { status: "ok" }
+>["organization"];
+
 export const organizationQueryOptions = () =>
   queryOptions({
     queryKey: ["current-organization"],

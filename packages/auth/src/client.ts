@@ -1,6 +1,6 @@
 import { organizationClient } from "better-auth/client/plugins";
 import { createAuthClient as createBetterAuthClient } from "better-auth/react";
-import { organizationRoles } from "./access-control";
+import { organizationAC, organizationRoles } from "./access-control";
 
 export interface CreateAuthClientOptions {
   baseURL?: string;
@@ -11,6 +11,7 @@ export const createAuthClient = ({ baseURL }: CreateAuthClientOptions = {}) =>
     baseURL,
     plugins: [
       organizationClient({
+        ac: organizationAC,
         roles: organizationRoles,
       }),
     ],

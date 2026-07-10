@@ -3,9 +3,7 @@ import type { DbClient } from "@heho/db";
 import { desc, eq } from "@heho/db/helper";
 import { llmProvider } from "@heho/db/schema";
 import { encryptApiKey } from "../lib/api-key-encryption";
-import { hasOwnerRole } from "../lib/helpers";
 import type { CreateLlmProviderInput } from "../schemas/llm-providers";
-import { getCurrentOrganization } from "./organizations";
 
 export type LlmProviderDto = Omit<
   typeof llmProvider.$inferSelect,
@@ -16,34 +14,23 @@ export type CreateLlmProviderOptions = {
   db: DbClient;
   encryptionKey: Uint8Array;
   input: CreateLlmProviderInput;
-  userId: string;
+  organizationId: string;
 };
 
 export type ListLlmProviderOptions = {
   db: DbClient;
-  userId: string;
+  organizationId: string;
 };
 
-export type CreateLlmProviderResult =
-  | {
-      status: "created";
-      provider: LlmProviderDto;
-    }
-  | {
-      status: "organization_membership_required";
-    }
-  | {
-      status: "insufficient_role";
-    };
+export type CreateLlmProviderResult = {
+  status: "created";
+  provider: LlmProviderDto;
+};
 
-export type ListLlmProviderResult =
-  | {
-      status: "success";
-      providers: LlmProviderDto[];
-    }
-  | {
-      status: "organization_membership_required";
-    };
+export type ListLlmProviderResult = {
+  status: "success";
+  providers: LlmProviderDto[];
+};
 
 const providerSelection = {
   id: llmProvider.id,
@@ -60,25 +47,8 @@ export const createLlmProvider = async ({
   db,
   encryptionKey,
   input,
-  userId,
+  organizationId,
 }: CreateLlmProviderOptions): Promise<CreateLlmProviderResult> => {
-  // Get current organization
-  const organization = await getCurrentOrganization(db, userId);
-
-  // No organization for current user
-  if (!organization) {
-    return {
-      status: "organization_membership_required",
-    };
-  }
-
-  // Only the organization owner can create llm provider
-  if (!hasOwnerRole(organization.role)) {
-    return {
-      status: "insufficient_role",
-    };
-  }
-
   // Encrypt the input llm api key
   const encryptedApiKey = await encryptApiKey({
     apiKey: input.apiKey,
@@ -91,7 +61,7 @@ export const createLlmProvider = async ({
     .insert(llmProvider)
     .values({
       id: randomUUID(),
-      organizationId: organization.id,
+      organizationId,
       name: input.name,
       provider: input.provider,
       capability: input.capability,
@@ -117,22 +87,12 @@ export const createLlmProvider = async ({
 
 export const listLlmProviders = async ({
   db,
-  userId,
+  organizationId,
 }: ListLlmProviderOptions): Promise<ListLlmProviderResult> => {
-  // Get current organization
-  const organization = await getCurrentOrganization(db, userId);
-
-  // No organization for current user
-  if (!organization) {
-    return {
-      status: "organization_membership_required",
-    };
-  }
-
   const providers = await db
     .select(providerSelection)
     .from(llmProvider)
-    .where(eq(llmProvider.organizationId, organization.id))
+    .where(eq(llmProvider.organizationId, organizationId))
     .orderBy(desc(llmProvider.createdAt));
 
   return {

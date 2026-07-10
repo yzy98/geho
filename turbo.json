@@ -9,6 +9,10 @@
       "dependsOn": ["^typecheck"],
       "outputs": []
     },
+    "test": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
+    },
     "dev": {
       "cache": false,
       "persistent": true

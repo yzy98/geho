@@ -1,19 +1,16 @@
 import type { AuthServer } from "@heho/auth/server";
 import type { DbClient } from "@heho/db";
-import { eq, sql } from "@heho/db/helper";
-import { member, organization } from "@heho/db/schema";
+import { sql } from "@heho/db/helper";
+import { organization } from "@heho/db/schema";
+import type { Organization } from "../context";
 import type { CreateOrganizationInput } from "../schemas/organizations";
 
-export type CurrentOrganization = {
-  id: string;
-  name: string;
-  role: string;
-  slug: string;
-};
+export type CurrentOrganization = Organization;
 
 export type CreateInitialOrganizationOptions = {
   auth: AuthServer;
   db: DbClient;
+  headers: Headers;
   input: CreateOrganizationInput;
   userId: string;
 };
@@ -35,12 +32,10 @@ type DbTransaction = Parameters<Parameters<DbClient["transaction"]>[0]>[0];
 
 const ORGANIZATION_INITIALIZATION_LOCK_KEY = 73_640_001;
 
-export const getCurrentOrganization = (db: DbClient, userId: string) =>
-  findCurrentOrganization(db, userId);
-
 export const createInitialOrganization = async ({
   auth,
   db,
+  headers,
   input,
   userId,
 }: CreateInitialOrganizationOptions): Promise<CreateInitialOrganizationResult> =>
@@ -49,7 +44,13 @@ export const createInitialOrganization = async ({
       sql`select pg_advisory_xact_lock(${ORGANIZATION_INITIALIZATION_LOCK_KEY})`
     );
 
-    const currentOrganization = await findCurrentOrganization(tx, userId);
+    // Use better auth to check if the current user belongs to an organization
+    const userOrganizations = await auth.api.listOrganizations({
+      headers,
+    });
+
+    // One tenant
+    const currentOrganization = userOrganizations[0];
 
     if (currentOrganization) {
       return {
@@ -58,15 +59,18 @@ export const createInitialOrganization = async ({
       };
     }
 
-    const existingOrganizations = await hasAnyOrganization(tx);
+    // User belongs to no organization, check if organization exists in the system
+    const organizationExists = await hasAnyOrganization(tx);
 
-    if (existingOrganizations) {
+    if (organizationExists) {
       return {
         status: "organization_membership_required",
       };
     }
 
-    await auth.api.createOrganization({
+    // User belongs no organization, and no organization exists
+    // Create one
+    const createdOrganization = await auth.api.createOrganization({
       body: {
         name: input.name,
         slug: input.slug,
@@ -77,15 +81,11 @@ export const createInitialOrganization = async ({
       },
     });
 
-    const createdOrganization = await findCurrentOrganization(tx, userId);
-
-    if (!createdOrganization) {
-      throw new Error("Organization was created but membership was not found.");
-    }
+    const { members: _, ...organization } = createdOrganization;
 
     return {
       status: "created",
-      organization: createdOrganization,
+      organization,
     };
   });
 
@@ -96,23 +96,4 @@ export const hasAnyOrganization = async (db: DbClient | DbTransaction) => {
     .limit(1);
 
   return rows.length > 0;
-};
-
-const findCurrentOrganization = async (
-  db: DbClient | DbTransaction,
-  userId: string
-): Promise<CurrentOrganization | null> => {
-  const rows = await db
-    .select({
-      id: organization.id,
-      name: organization.name,
-      slug: organization.slug,
-      role: member.role,
-    })
-    .from(member)
-    .innerJoin(organization, eq(member.organizationId, organization.id))
-    .where(eq(member.userId, userId))
-    .limit(1);
-
-  return rows[0] ?? null;
 };
