@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { DbClient } from "@heho/db";
 import { and, desc, eq } from "@heho/db/helper";
-import { chatbot, knowledgeBase, llmProvider } from "@heho/db/schema";
+import { chatbot, knowledgeBase, modelProvider } from "@heho/db/schema";
 import type { CreateChatbotInput } from "../schemas/chatbots";
 
 export type ChatbotDto = Omit<
@@ -55,14 +55,14 @@ export const createChatbot = async ({
   // Check if the input chat provider exists in the current organization
   const matchedChatProviders = await db
     .select({
-      id: llmProvider.id,
+      id: modelProvider.id,
     })
-    .from(llmProvider)
+    .from(modelProvider)
     .where(
       and(
-        eq(llmProvider.organizationId, organizationId),
-        eq(llmProvider.id, input.chatProviderId),
-        eq(llmProvider.capability, "chat")
+        eq(modelProvider.organizationId, organizationId),
+        eq(modelProvider.id, input.chatProviderId),
+        eq(modelProvider.capability, "chat")
       )
     )
     .limit(1);

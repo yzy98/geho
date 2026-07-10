@@ -5,7 +5,7 @@ import {
   knowledgeBase,
   knowledgeChunk,
   knowledgeSource,
-  llmProvider,
+  modelProvider,
 } from "@heho/db/schema";
 import { type Chunk, getChunks } from "@heho/rag";
 import { decryptApiKey } from "../lib/api-key-encryption";
@@ -197,20 +197,20 @@ const getKnowledgeBaseEmbeddingProvider = async ({
     .select({
       knowledgeBaseId: knowledgeBase.id,
       embeddingProvider: {
-        id: llmProvider.id,
-        provider: llmProvider.provider,
-        model: llmProvider.model,
-        baseUrl: llmProvider.baseUrl,
-        encryptedApiKey: llmProvider.encryptedApiKey,
+        id: modelProvider.id,
+        provider: modelProvider.provider,
+        modelId: modelProvider.modelId,
+        baseUrl: modelProvider.baseUrl,
+        encryptedApiKey: modelProvider.encryptedApiKey,
       },
     })
     .from(knowledgeBase)
     .innerJoin(
-      llmProvider,
+      modelProvider,
       and(
-        eq(knowledgeBase.organizationId, llmProvider.organizationId),
-        eq(knowledgeBase.embeddingProviderId, llmProvider.id),
-        eq(llmProvider.capability, "embedding")
+        eq(knowledgeBase.organizationId, modelProvider.organizationId),
+        eq(knowledgeBase.embeddingProviderId, modelProvider.id),
+        eq(modelProvider.capability, "embedding")
       )
     )
     .where(
@@ -294,7 +294,7 @@ export const processKnowledgeSource = async ({
     // Resolve the embedding model
     const model = resolveEmbeddingModel({
       apiKey,
-      modelId: provider.model,
+      modelId: provider.modelId,
       provider: provider.provider,
       baseUrl: provider.baseUrl,
     });

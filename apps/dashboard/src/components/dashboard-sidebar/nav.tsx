@@ -37,11 +37,11 @@ export function WorkspaceNav({ pathname }: NavProps) {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              isActive={pathname === "/providers"}
-              render={<Link to="/providers" />}
+              isActive={pathname === "/models"}
+              render={<Link to="/models" />}
             >
               <KeyRoundIcon />
-              <span>Providers</span>
+              <span>Models</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

@@ -1,18 +1,18 @@
 import { ResponsiveDialog } from "@heho/ui/components/responsive-dialog";
 import { useIsMobile } from "@heho/ui/hooks/use-mobile";
-import { CreateLlmProviderForm } from "@/components/forms/create-llm-provider-form";
+import { CreateModelProviderForm } from "@/components/forms/create-model-provider-form";
 
-type CreateLlmProviderDialogProps = {
+type CreateModelProviderDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
 };
 
-export const CreateLlmProviderDialog = ({
+export const CreateModelProviderDialog = ({
   open,
   onOpenChange,
   organizationId,
-}: CreateLlmProviderDialogProps) => {
+}: CreateModelProviderDialogProps) => {
   const isMobile = useIsMobile();
 
   return (
@@ -20,9 +20,9 @@ export const CreateLlmProviderDialog = ({
       description="Add credentials for one model capability."
       onOpenChange={onOpenChange}
       open={open}
-      title="Add LLM provider"
+      title="Add model"
     >
-      <CreateLlmProviderForm
+      <CreateModelProviderForm
         className={isMobile ? "px-4" : undefined}
         onSuccess={() => onOpenChange(false)}
         organizationId={organizationId}

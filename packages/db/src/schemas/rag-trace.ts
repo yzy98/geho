@@ -39,7 +39,7 @@ export const ragTrace = pgTable(
     question: text().notNull(),
     answer: text().notNull(),
     promptPreview: text().notNull(),
-    model: text().notNull(),
+    modelId: text().notNull(),
     latencyMs: integer().notNull(),
     retrievedChunks: jsonb().$type<RagTraceRetrievedChunk[]>().notNull(),
     citations: jsonb().$type<RagTraceCitation[]>().notNull(),

@@ -1,20 +1,20 @@
 import { ResponsiveDialog } from "@heho/ui/components/responsive-dialog";
 import { useIsMobile } from "@heho/ui/hooks/use-mobile";
-import type { LlmProvider } from "@/queries/llm-provider";
+import type { ModelProvider } from "@/queries/model-provider";
 import { CreateKnowledgeBaseForm } from "../forms/create-knowledge-base-form";
 
 type CreateKnowledgeBaseDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizationId: string;
-  providers: LlmProvider[];
+  embeddingModels: ModelProvider[];
 };
 
 export const CreateKnowledgeBaseDialog = ({
   open,
   onOpenChange,
   organizationId,
-  providers,
+  embeddingModels,
 }: CreateKnowledgeBaseDialogProps) => {
   const isMobile = useIsMobile();
 
@@ -27,9 +27,9 @@ export const CreateKnowledgeBaseDialog = ({
     >
       <CreateKnowledgeBaseForm
         className={isMobile ? "px-4" : undefined}
+        embeddingModels={embeddingModels}
         onSuccess={() => onOpenChange(false)}
         organizationId={organizationId}
-        providers={providers}
       />
     </ResponsiveDialog>
   );

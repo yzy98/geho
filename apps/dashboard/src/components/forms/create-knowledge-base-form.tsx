@@ -23,7 +23,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ComponentProps } from "react";
 import z from "zod";
 import { createKnowledgeBaseMutationOptions } from "@/queries/knowledge-base";
-import type { LlmProvider } from "@/queries/llm-provider";
+import type { ModelProvider } from "@/queries/model-provider";
 
 const createKnowledgeBaseFormSchema = z
   .object({
@@ -32,7 +32,7 @@ const createKnowledgeBaseFormSchema = z
       .trim()
       .min(1, "Knowledge base name is required")
       .max(100, "Knowledge base name is too long"),
-    embeddingProviderId: z.uuid("Select an embedding LLM provider"),
+    embeddingProviderId: z.uuid("Select an embedding model"),
   })
   .strict();
 
@@ -42,23 +42,19 @@ type CreateKnowledgeBaseFormValues = z.infer<
 
 type CreateKnowledgeBaseFormProps = Omit<ComponentProps<"form">, "onSubmit"> & {
   organizationId: string;
-  providers: LlmProvider[];
+  embeddingModels: ModelProvider[];
   onSuccess?: () => void;
 };
 
 export const CreateKnowledgeBaseForm = ({
   organizationId,
-  providers,
+  embeddingModels,
   onSuccess,
   ...formProps
 }: CreateKnowledgeBaseFormProps) => {
   const queryClient = useQueryClient();
 
-  const embeddingProviders = providers.filter(
-    (provider) => provider.capability === "embedding"
-  );
-
-  const hasEmbeddingProviders = embeddingProviders.length > 0;
+  const hasEmbeddingModels = embeddingModels.length > 0;
 
   const mutation = useMutation({
     ...createKnowledgeBaseMutationOptions(queryClient, organizationId),
@@ -70,7 +66,7 @@ export const CreateKnowledgeBaseForm = ({
   const form = useForm({
     defaultValues: {
       name: "",
-      embeddingProviderId: embeddingProviders[0]?.id ?? "",
+      embeddingProviderId: embeddingModels[0]?.id ?? "",
     } satisfies CreateKnowledgeBaseFormValues,
     validators: {
       onBlur: createKnowledgeBaseFormSchema,
@@ -98,7 +94,7 @@ export const CreateKnowledgeBaseForm = ({
     >
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
-          <FieldSet disabled={isSubmitting || !hasEmbeddingProviders}>
+          <FieldSet disabled={isSubmitting || !hasEmbeddingModels}>
             <FieldGroup>
               <form.Field name="name">
                 {(field) => {
@@ -138,15 +134,15 @@ export const CreateKnowledgeBaseForm = ({
                   const isInvalid =
                     field.state.meta.isTouched && !field.state.meta.isValid;
 
-                  const items = embeddingProviders.map((provider) => ({
-                    label: `${provider.name} · ${provider.provider} · ${provider.model}`,
-                    value: provider.id,
+                  const items = embeddingModels.map((model) => ({
+                    label: `${model.name} · ${model.provider} · ${model.modelId}`,
+                    value: model.id,
                   }));
 
                   return (
                     <Field data-invalid={isInvalid}>
                       <FieldLabel htmlFor={field.name}>
-                        Embedding provider
+                        Embedding model
                       </FieldLabel>
                       <Select
                         items={items}
@@ -161,7 +157,7 @@ export const CreateKnowledgeBaseForm = ({
                           id={field.name}
                           onBlur={field.handleBlur}
                         >
-                          <SelectValue placeholder="Select an embedding provider" />
+                          <SelectValue placeholder="Select an embedding model" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
@@ -191,9 +187,7 @@ export const CreateKnowledgeBaseForm = ({
               >
                 {([canSubmit, submitting]) => (
                   <Button
-                    disabled={
-                      !(hasEmbeddingProviders && canSubmit) || submitting
-                    }
+                    disabled={!(hasEmbeddingModels && canSubmit) || submitting}
                     form="create-knowledge-base-form"
                     type="submit"
                   >

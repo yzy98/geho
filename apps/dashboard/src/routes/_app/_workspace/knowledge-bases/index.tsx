@@ -29,9 +29,9 @@ import {
   knowledgeBasesQueryOptions,
 } from "@/queries/knowledge-base";
 import {
-  type LlmProvider,
-  llmProvidersQueryOptions,
-} from "@/queries/llm-provider";
+  type ModelProvider,
+  modelProvidersQueryOptions,
+} from "@/queries/model-provider";
 import { organizationPermissionQueryOptions } from "@/queries/organization-permission";
 
 export const Route = createFileRoute("/_app/_workspace/knowledge-bases/")({
@@ -41,7 +41,7 @@ export const Route = createFileRoute("/_app/_workspace/knowledge-bases/")({
         knowledgeBasesQueryOptions(context.organization.id)
       ),
       context.queryClient.ensureQueryData(
-        llmProvidersQueryOptions(context.organization.id)
+        modelProvidersQueryOptions(context.organization.id)
       ),
       context.queryClient.ensureQueryData(
         organizationPermissionQueryOptions(
@@ -63,13 +63,13 @@ function KnowledgeBasesPage() {
     data: { knowledgeBases },
   } = useSuspenseQuery(knowledgeBasesQueryOptions(organization.id));
   const {
-    data: { providers },
-  } = useSuspenseQuery(llmProvidersQueryOptions(organization.id));
+    data: { modelProviders },
+  } = useSuspenseQuery(modelProvidersQueryOptions(organization.id));
 
-  const embeddingProviders = providers.filter(
-    (provider) => provider.capability === "embedding"
+  const embeddingModels = modelProviders.filter(
+    (modelProviders) => modelProviders.capability === "embedding"
   );
-  const hasEmbeddingProvider = embeddingProviders.length > 0;
+  const hasEmbeddingModel = embeddingModels.length > 0;
   const canCreateKnowledgeBase = useOrganizationPermission(
     "createKnowledgeBase"
   );
@@ -81,16 +81,16 @@ function KnowledgeBasesPage() {
           Create reusable knowledge collections for your chatbots.
         </p>
 
-        {canCreateKnowledgeBase && hasEmbeddingProvider && (
+        {canCreateKnowledgeBase && hasEmbeddingModel && (
           <Button onClick={() => setCreateDialogOpen(true)}>
             <PlusIcon data-icon="inline-start" />
             Add knowledge base
           </Button>
         )}
 
-        {canCreateKnowledgeBase && !hasEmbeddingProvider && (
-          <Link className={buttonVariants()} to="/providers">
-            Configure embedding provider
+        {canCreateKnowledgeBase && !hasEmbeddingModel && (
+          <Link className={buttonVariants()} to="/models">
+            Configure an embedding model
           </Link>
         )}
       </div>
@@ -98,21 +98,21 @@ function KnowledgeBasesPage() {
       {knowledgeBases.length === 0 ? (
         <KnowledgeBasesEmptyAlert
           canCreate={canCreateKnowledgeBase}
-          hasEmbeddingProvider={hasEmbeddingProvider}
+          hasEmbeddingModel={hasEmbeddingModel}
         />
       ) : (
         <KnowledgeBaseList
+          embeddingModels={embeddingModels}
           knowledgeBases={knowledgeBases}
-          providers={providers}
         />
       )}
 
-      {canCreateKnowledgeBase && hasEmbeddingProvider && (
+      {canCreateKnowledgeBase && hasEmbeddingModel && (
         <CreateKnowledgeBaseDialog
+          embeddingModels={embeddingModels}
           onOpenChange={setCreateDialogOpen}
           open={createDialogOpen}
           organizationId={organization.id}
-          providers={embeddingProviders}
         />
       )}
     </>
@@ -121,24 +121,24 @@ function KnowledgeBasesPage() {
 
 function KnowledgeBasesEmptyAlert({
   canCreate,
-  hasEmbeddingProvider,
+  hasEmbeddingModel,
 }: {
   canCreate: boolean;
-  hasEmbeddingProvider: boolean;
+  hasEmbeddingModel: boolean;
 }) {
   return (
     <Alert>
       <AlertTriangleIcon />
       <AlertTitle>
-        {hasEmbeddingProvider
+        {hasEmbeddingModel
           ? "No knowledge bases configured"
-          : "Embedding provider required"}
+          : "Embedding model required"}
       </AlertTitle>
       <AlertDescription>
         {canCreate
-          ? hasEmbeddingProvider
+          ? hasEmbeddingModel
             ? "Create a reusable knowledge base for your chatbots."
-            : "Configure an embedding provider before creating a knowledge base."
+            : "Configure an embedding model before creating a knowledge base."
           : "You do not have permission to create knowledge bases."}
       </AlertDescription>
     </Alert>
@@ -147,22 +147,22 @@ function KnowledgeBasesEmptyAlert({
 
 type KnowledgeBaseListProps = {
   knowledgeBases: KnowledgeBase[];
-  providers: LlmProvider[];
+  embeddingModels: ModelProvider[];
 };
 
 function KnowledgeBaseList({
   knowledgeBases,
-  providers,
+  embeddingModels,
 }: KnowledgeBaseListProps) {
-  const providersById = new Map(
-    providers.map((provider) => [provider.id, provider])
+  const embeddingModelsById = new Map(
+    embeddingModels.map((embeddingModel) => [embeddingModel.id, embeddingModel])
   );
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {knowledgeBases.map((knowledgeBase) => (
         <KnowledgeBaseCard
-          embeddingProvider={providersById.get(
+          embeddingModel={embeddingModelsById.get(
             knowledgeBase.embeddingProviderId
           )}
           key={knowledgeBase.id}
@@ -175,12 +175,12 @@ function KnowledgeBaseList({
 
 type KnowledgeBaseCardProps = {
   knowledgeBase: KnowledgeBase;
-  embeddingProvider: LlmProvider | undefined;
+  embeddingModel: ModelProvider | undefined;
 };
 
 function KnowledgeBaseCard({
   knowledgeBase,
-  embeddingProvider,
+  embeddingModel,
 }: KnowledgeBaseCardProps) {
   return (
     <Card>
@@ -191,20 +191,20 @@ function KnowledgeBaseCard({
 
       <CardContent>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-          <dt className="text-muted-foreground">Embedding provider</dt>
+          <dt className="text-muted-foreground">Embedding model provider</dt>
           <dd
             className="truncate text-right"
-            title={formatProvider(embeddingProvider)}
+            title={formatModel(embeddingModel)}
           >
-            {formatProvider(embeddingProvider)}
+            {formatModel(embeddingModel)}
           </dd>
 
-          <dt className="text-muted-foreground">Model</dt>
+          <dt className="text-muted-foreground">Model ID</dt>
           <dd
             className="truncate text-right"
-            title={embeddingProvider?.model ?? "Provider missing"}
+            title={embeddingModel?.modelId ?? "Model missing"}
           >
-            {embeddingProvider?.model ?? "Provider missing"}
+            {embeddingModel?.modelId ?? "Model missing"}
           </dd>
         </dl>
       </CardContent>
@@ -226,9 +226,9 @@ function KnowledgeBaseCard({
   );
 }
 
-function formatProvider(provider?: LlmProvider) {
+function formatModel(provider?: ModelProvider) {
   if (!provider) {
-    return "Provider missing";
+    return "Model missing";
   }
 
   return `${provider.name} · ${provider.provider}`;

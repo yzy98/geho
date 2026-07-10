@@ -3,7 +3,7 @@ import type { DbClient } from "@heho/db";
 import { and, eq } from "@heho/db/helper";
 import {
   chatbot,
-  llmProvider,
+  modelProvider,
   type RagTraceCitation,
   ragTrace,
 } from "@heho/db/schema";
@@ -56,20 +56,20 @@ const getChatbotForAskPreview = async ({
         systemInstructions: chatbot.systemInstructions,
       },
       chatProvider: {
-        id: llmProvider.id,
-        provider: llmProvider.provider,
-        model: llmProvider.model,
-        baseUrl: llmProvider.baseUrl,
-        encryptedApiKey: llmProvider.encryptedApiKey,
+        id: modelProvider.id,
+        provider: modelProvider.provider,
+        modelId: modelProvider.modelId,
+        baseUrl: modelProvider.baseUrl,
+        encryptedApiKey: modelProvider.encryptedApiKey,
       },
     })
     .from(chatbot)
     .innerJoin(
-      llmProvider,
+      modelProvider,
       and(
-        eq(chatbot.organizationId, llmProvider.organizationId),
-        eq(chatbot.chatProviderId, llmProvider.id),
-        eq(llmProvider.capability, "chat")
+        eq(chatbot.organizationId, modelProvider.organizationId),
+        eq(chatbot.chatProviderId, modelProvider.id),
+        eq(modelProvider.capability, "chat")
       )
     )
     .where(
@@ -125,7 +125,7 @@ export const askChatbotPreview = async ({
   // Record the service fn start time
   const startedAt = Date.now();
 
-  // Find the current chatbot with its LLM provider
+  // Find the current chatbot with its chat model provider
   const matchedChatbot = await getChatbotForAskPreview({
     db,
     chatbotId,
@@ -172,7 +172,7 @@ export const askChatbotPreview = async ({
     // Resolve the chat model
     const model = resolveChatModel({
       apiKey,
-      modelId: matchedChatbot.chatProvider.model,
+      modelId: matchedChatbot.chatProvider.modelId,
       provider: matchedChatbot.chatProvider.provider,
       baseUrl: matchedChatbot.chatProvider.baseUrl,
     });
@@ -207,7 +207,7 @@ export const askChatbotPreview = async ({
     organizationId,
     chatbotId,
     knowledgeBaseId: matchedChatbot.chatbot.knowledgeBaseId,
-    model: matchedChatbot.chatProvider.model,
+    modelId: matchedChatbot.chatProvider.modelId,
     question: input.question,
     answer,
     promptPreview,
