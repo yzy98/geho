@@ -1,54 +1,30 @@
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import type { CreateAppOptions } from "../app";
-import type { AppEnv } from "../context";
-import { requireAuth } from "../middleware/require-auth";
-import { requireOrganization } from "../middleware/require-organization";
-import { requireOrganizationPermission } from "../middleware/require-organization-permission";
+import type { AppEnv } from "../../context";
+import { requireAuth } from "../../middleware/require-auth";
+import { requireOrganization } from "../../middleware/require-organization";
+import { requireOrganizationPermission } from "../../middleware/require-organization-permission";
 import {
   askChatbotPreviewSchema,
   chatbotPreviewParamsSchema,
-} from "../schemas/ask-preview";
-import { askChatbotPreview } from "../services/chatbot-ask-preview";
+} from "../../schemas/ask-preview";
+import { askChatbotPreview } from "../../services/chatbot-ask-preview";
+import type { RouteDependencies } from "../types";
+import { jsonValidator, paramValidator } from "../validators";
 
 type CreateChatbotAskPreviewRouteOptions = Pick<
-  CreateAppOptions,
+  RouteDependencies,
   "auth" | "db" | "encryptionKey"
 >;
 
-const chatbotPreviewParamsValidator = zValidator(
-  "param",
-  chatbotPreviewParamsSchema,
-  (result, c) => {
-    if (!result.success) {
-      return c.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid chatbot ID.",
-          issues: result.error.issues,
-        },
-        400
-      );
-    }
-  }
-);
+const chatbotPreviewParamsValidator = paramValidator({
+  schema: chatbotPreviewParamsSchema,
+  message: "Invalid chatbot ID.",
+});
 
-const askChatbotPreviewValidator = zValidator(
-  "json",
-  askChatbotPreviewSchema,
-  (result, c) => {
-    if (!result.success) {
-      return c.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid ask preview input.",
-          issues: result.error.issues,
-        },
-        400
-      );
-    }
-  }
-);
+const askChatbotPreviewValidator = jsonValidator({
+  schema: askChatbotPreviewSchema,
+  message: "Invalid ask preview input.",
+});
 
 const chatbotNotFoundResponse = {
   code: "CHATBOT_NOT_FOUND",

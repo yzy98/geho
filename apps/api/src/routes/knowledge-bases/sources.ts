@@ -1,60 +1,33 @@
-import type { AuthServer } from "@heho/auth/server";
-import type { DbClient } from "@heho/db";
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import type { AppEnv } from "../context";
-import { requireAuth } from "../middleware/require-auth";
-import { requireOrganization } from "../middleware/require-organization";
-import { requireOrganizationPermission } from "../middleware/require-organization-permission";
+import type { AppEnv } from "../../context";
+import { requireAuth } from "../../middleware/require-auth";
+import { requireOrganization } from "../../middleware/require-organization";
+import { requireOrganizationPermission } from "../../middleware/require-organization-permission";
 import {
   createTextKnowledgeSourceSchema,
   knowledgeSourcesParamsSchema,
-} from "../schemas/knowledge-sources";
-import type { StartKnowledgeSourceIngestion } from "../services/knowledge-source-ingestion";
+} from "../../schemas/knowledge-sources";
 import {
   createKnowledgeSource,
   listKnowledgeSources,
-} from "../services/knowledge-sources";
+} from "../../services/knowledge-sources";
+import type { RouteDependencies } from "../types";
+import { jsonValidator, paramValidator } from "../validators";
 
-type CreateKnowledgeSourcesRouteOptions = {
-  auth: AuthServer;
-  db: DbClient;
-  startKnowledgeSourceIngestion: StartKnowledgeSourceIngestion;
-};
+type CreateKnowledgeSourcesRouteOptions = Pick<
+  RouteDependencies,
+  "auth" | "db" | "startKnowledgeSourceIngestion"
+>;
 
-const knowledgeSourcesParamsValidator = zValidator(
-  "param",
-  knowledgeSourcesParamsSchema,
-  (result, c) => {
-    if (!result.success) {
-      return c.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid knowledge base ID.",
-          issues: result.error.issues,
-        },
-        400
-      );
-    }
-  }
-);
+const knowledgeSourcesParamsValidator = paramValidator({
+  schema: knowledgeSourcesParamsSchema,
+  message: "Invalid knowledge base ID.",
+});
 
-const createKnowledgeSourceValidator = zValidator(
-  "json",
-  createTextKnowledgeSourceSchema,
-  (result, c) => {
-    if (!result.success) {
-      return c.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid knowledge source input.",
-          issues: result.error.issues,
-        },
-        400
-      );
-    }
-  }
-);
+const createKnowledgeSourceValidator = jsonValidator({
+  schema: createTextKnowledgeSourceSchema,
+  message: "Invalid knowledge source input.",
+});
 
 const knowledgeBaseNotFoundResponse = {
   code: "KNOWLEDGE_BASE_NOT_FOUND",
