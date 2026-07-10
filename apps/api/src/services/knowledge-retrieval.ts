@@ -4,7 +4,7 @@ import { knowledgeBase, llmProvider } from "@heho/db/schema";
 import { decryptApiKey } from "../lib/api-key-encryption";
 import { generateEmbedding } from "../lib/embedding";
 import { resolveEmbeddingModel } from "../lib/embedding-models";
-import { findSimilarKnowledgeChunks } from "../lib/retrieval";
+import { findSimilarKnowledgeChunks, type RagChunk } from "../lib/retrieval";
 import type { RetrievalPreviewInput } from "../schemas/knowledge-bases";
 
 export type RetrieveKnowledgeChunksOptions = {
@@ -15,14 +15,10 @@ export type RetrieveKnowledgeChunksOptions = {
   input: RetrievalPreviewInput;
 };
 
-type SimilarKnowledgeChunk = Awaited<
-  ReturnType<typeof findSimilarKnowledgeChunks>
->[number];
-
 export type RetrieveKnowledgeChunksResult =
   | {
       status: "retrieved";
-      chunks: SimilarKnowledgeChunk[];
+      chunks: RagChunk[];
     }
   | {
       status: "knowledge_base_not_found";

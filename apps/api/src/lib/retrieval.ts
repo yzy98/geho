@@ -53,3 +53,7 @@ export const findSimilarKnowledgeChunks = async ({
     .orderBy((table) => desc(table.similarity))
     .limit(limit);
 };
+
+export type RagChunk = Awaited<
+  ReturnType<typeof findSimilarKnowledgeChunks>
+>[number];

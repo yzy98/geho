@@ -2,6 +2,7 @@ import type { AuthServer } from "@heho/auth/server";
 import type { DbClient } from "@heho/db";
 import { Hono } from "hono";
 import { generateEmbeddings } from "./lib/embedding";
+import { createChatbotAskPreviewRoute } from "./routes/chatbot-ask-preview";
 import { createChatbotsRoute } from "./routes/chatbots";
 import { createChatbotEmbedKeysRoute } from "./routes/embed-keys";
 import health from "./routes/health";
@@ -62,6 +63,10 @@ export function createApp({
       .route(
         "/chatbots/:chatbotId/embed-keys",
         createChatbotEmbedKeysRoute({ auth, db })
+      )
+      .route(
+        "/chatbots/:chatbotId/ask-preview",
+        createChatbotAskPreviewRoute({ auth, db, encryptionKey })
       )
       .route("/chatbots", createChatbotsRoute({ auth, db }))
   );
