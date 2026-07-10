@@ -1,6 +1,6 @@
 import type { DbClient } from "@heho/db";
 import type { GenerateEmbeddings } from "../lib/embedding";
-import { processKnowledgeSource } from "./knowledge-sources";
+import { processKnowledgeSource } from "./knowledge-source-processing";
 
 export type StartKnowledgeSourceIngestion = (options: {
   sourceId: string;

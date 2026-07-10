@@ -1,31 +1,22 @@
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import type { CreateAppOptions } from "../app";
-import type { AppEnv } from "../context";
-import { requireAuth } from "../middleware/require-auth";
-import { requireOrganization } from "../middleware/require-organization";
-import { requireOrganizationPermission } from "../middleware/require-organization-permission";
-import { createChatbotSchema } from "../schemas/chatbots";
-import { createChatbot, listChatbots } from "../services/chatbots";
+import type { AppEnv } from "../../context";
+import { requireAuth } from "../../middleware/require-auth";
+import { requireOrganization } from "../../middleware/require-organization";
+import { requireOrganizationPermission } from "../../middleware/require-organization-permission";
+import { createChatbotSchema } from "../../schemas/chatbots";
+import { createChatbot, listChatbots } from "../../services/chatbots";
+import type { RouteDependencies } from "../types";
+import { jsonValidator } from "../validators";
 
-type CreateChatbotsRouteOptions = Omit<CreateAppOptions, "encryptionKey">;
+type CreateChatbotCollectionRouteOptions = Pick<
+  RouteDependencies,
+  "auth" | "db"
+>;
 
-const createChatbotValidator = zValidator(
-  "json",
-  createChatbotSchema,
-  (result, c) => {
-    if (!result.success) {
-      return c.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid chatbot input.",
-          issues: result.error.issues,
-        },
-        400
-      );
-    }
-  }
-);
+const createChatbotValidator = jsonValidator({
+  schema: createChatbotSchema,
+  message: "Invalid chatbot input.",
+});
 
 const invalidChatProviderResponse = {
   code: "INVALID_CHAT_PROVIDER",
@@ -37,7 +28,10 @@ const invalidKnowledgeBaseResponse = {
   message: "Selected knowledge base is invalid.",
 } as const;
 
-export const createChatbotsRoute = ({ auth, db }: CreateChatbotsRouteOptions) =>
+export const createChatbotCollectionRoute = ({
+  auth,
+  db,
+}: CreateChatbotCollectionRouteOptions) =>
   new Hono<AppEnv>()
     .use("*", requireAuth(auth))
     .use("*", requireOrganization(auth))

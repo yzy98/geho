@@ -1,54 +1,33 @@
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import type { CreateAppOptions } from "../app";
-import type { AppEnv } from "../context";
-import { requireAuth } from "../middleware/require-auth";
-import { requireOrganization } from "../middleware/require-organization";
-import { requireOrganizationPermission } from "../middleware/require-organization-permission";
+import type { AppEnv } from "../../context";
+import { requireAuth } from "../../middleware/require-auth";
+import { requireOrganization } from "../../middleware/require-organization";
+import { requireOrganizationPermission } from "../../middleware/require-organization-permission";
 import {
   chatbotEmbedKeysParamsSchema,
   createEmbedKeySchema,
-} from "../schemas/embed-keys";
-import { createEmbedKey, listChatbotEmbedKeys } from "../services/embed-keys";
+} from "../../schemas/embed-keys";
+import {
+  createEmbedKey,
+  listChatbotEmbedKeys,
+} from "../../services/embed-keys";
+import type { RouteDependencies } from "../types";
+import { jsonValidator, paramValidator } from "../validators";
 
-type CreateChatbotEmbedKeysRouteOptions = Omit<
-  CreateAppOptions,
-  "encryptionKey"
+type CreateChatbotEmbedKeysRouteOptions = Pick<
+  RouteDependencies,
+  "auth" | "db"
 >;
 
-const chatbotEmbedKeysParamsValidator = zValidator(
-  "param",
-  chatbotEmbedKeysParamsSchema,
-  (result, c) => {
-    if (!result.success) {
-      return c.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid chatbot ID.",
-          issues: result.error.issues,
-        },
-        400
-      );
-    }
-  }
-);
+const chatbotEmbedKeysParamsValidator = paramValidator({
+  schema: chatbotEmbedKeysParamsSchema,
+  message: "Invalid chatbot ID.",
+});
 
-const createEmbedKeyValidator = zValidator(
-  "json",
-  createEmbedKeySchema,
-  (result, c) => {
-    if (!result.success) {
-      return c.json(
-        {
-          code: "VALIDATION_ERROR",
-          message: "Invalid embed key input.",
-          issues: result.error.issues,
-        },
-        400
-      );
-    }
-  }
-);
+const createEmbedKeyValidator = jsonValidator({
+  schema: createEmbedKeySchema,
+  message: "Invalid embed key input.",
+});
 
 const invalidChatbotResponse = {
   code: "INVALID_CHATBOT",
