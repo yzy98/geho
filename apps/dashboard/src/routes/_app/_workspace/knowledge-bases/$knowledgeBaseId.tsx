@@ -108,7 +108,7 @@ function KnowledgeBaseDetailsPage() {
             <CardDescription>
               Embedding provider: {knowledgeBase.embeddingProvider.name} ·{" "}
               {knowledgeBase.embeddingProvider.provider} ·{" "}
-              {knowledgeBase.embeddingProvider.model}
+              {knowledgeBase.embeddingProvider.modelId}
             </CardDescription>
           </CardHeader>
         </Card>

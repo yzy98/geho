@@ -32,7 +32,7 @@ import type { ComponentProps } from "react";
 import z from "zod";
 import { createChatbotMutationOptions } from "@/queries/chatbot";
 import type { KnowledgeBase } from "@/queries/knowledge-base";
-import type { LlmProvider } from "@/queries/llm-provider";
+import type { ModelProvider } from "@/queries/model-provider";
 
 const createChatbotFormSchema = z
   .object({
@@ -46,7 +46,7 @@ const createChatbotFormSchema = z
       .trim()
       .min(1, "System instructions are required")
       .max(10_000, "System instructions are too long"),
-    chatProviderId: z.uuid("Select a chat LLM provider"),
+    chatProviderId: z.uuid("Select a chat model"),
     knowledgeBaseId: z.uuid("Select a knowledge base"),
   })
   .strict();
@@ -55,23 +55,21 @@ type CreateChatbotFormValues = z.infer<typeof createChatbotFormSchema>;
 
 type CreateChatbotFormProps = Omit<ComponentProps<"form">, "onSubmit"> & {
   organizationId: string;
-  providers: LlmProvider[];
+  models: ModelProvider[];
   knowledgeBases: KnowledgeBase[];
   onSuccess?: () => void;
 };
 
 export const CreateChatbotForm = ({
   organizationId,
-  providers,
+  models,
   knowledgeBases,
   onSuccess,
   ...formProps
 }: CreateChatbotFormProps) => {
   const queryClient = useQueryClient();
 
-  const chatProviders = providers.filter(
-    (provider) => provider.capability === "chat"
-  );
+  const chatProviders = models.filter((models) => models.capability === "chat");
 
   const hasChatProviders = chatProviders.length > 0;
   const hasKnowledgeBases = knowledgeBases.length > 0;
@@ -122,9 +120,9 @@ export const CreateChatbotForm = ({
               {!hasChatProviders && (
                 <Alert variant="destructive">
                   <AlertTriangleIcon />
-                  <AlertTitle>Chat provider required</AlertTitle>
+                  <AlertTitle>Chat model required</AlertTitle>
                   <AlertDescription>
-                    Configure a chat provider before creating a chatbot.
+                    Configure a chat model before creating a chatbot.
                   </AlertDescription>
                   <AlertAction>
                     <Link
@@ -132,7 +130,7 @@ export const CreateChatbotForm = ({
                         size: "xs",
                         variant: "secondary",
                       })}
-                      to="/providers"
+                      to="/models"
                     >
                       Configure
                     </Link>
@@ -228,15 +226,13 @@ export const CreateChatbotForm = ({
                     field.state.meta.isTouched && !field.state.meta.isValid;
 
                   const items = chatProviders.map((provider) => ({
-                    label: `${provider.name} · ${provider.provider} · ${provider.model}`,
+                    label: `${provider.name} · ${provider.provider} · ${provider.modelId}`,
                     value: provider.id,
                   }));
 
                   return (
                     <Field data-invalid={isInvalid}>
-                      <FieldLabel htmlFor={field.name}>
-                        Chat LLM provider
-                      </FieldLabel>
+                      <FieldLabel htmlFor={field.name}>Chat model</FieldLabel>
                       <Select
                         items={items}
                         onValueChange={(value) =>
@@ -250,7 +246,7 @@ export const CreateChatbotForm = ({
                           id={field.name}
                           onBlur={field.handleBlur}
                         >
-                          <SelectValue placeholder="Select a chat provider" />
+                          <SelectValue placeholder="Select a chat model" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>

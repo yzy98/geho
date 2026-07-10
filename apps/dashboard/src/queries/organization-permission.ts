@@ -3,8 +3,8 @@ import { queryOptions } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
 
 const permissionRequests = {
-  createLlmProvider: {
-    llmProvider: ["create"],
+  createModelProvider: {
+    modelProvider: ["create"],
   },
   createKnowledgeBase: {
     knowledgeBase: ["create"],

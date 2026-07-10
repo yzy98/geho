@@ -29,15 +29,15 @@ import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ComponentProps } from "react";
 import z from "zod";
-import { createLlmProviderMutationOptions } from "@/queries/llm-provider";
+import { createModelProviderMutationOptions } from "@/queries/model-provider";
 
 const baseSchema = z
   .object({
     name: z
       .string()
       .trim()
-      .min(1, "LLM provider name is required")
-      .max(100, "LLM provider name is too long"),
+      .min(1, "Model provider name is required")
+      .max(100, "Model provider name is too long"),
     baseUrl: z.url("Enter a valid url").nullable().optional(),
     apiKey: z
       .string()
@@ -52,17 +52,17 @@ const chatProviderSchema = baseSchema
   .extend({
     capability: z.literal("chat"),
     provider: z.string().min(1, "Provider is required"),
-    model: z.string().min(1, "Model is required"),
+    modelId: z.string().min(1, "Model id is required"),
   })
   .refine(
-    ({ provider, model }) =>
+    ({ provider, modelId }) =>
       findSupportedChatModel({
-        id: model,
+        id: modelId,
         provider,
       }) !== undefined,
     {
       message: "Chat model is not supported by this provider",
-      path: ["model"],
+      path: ["modelId"],
     }
   );
 
@@ -70,69 +70,72 @@ const embeddingProviderSchema = baseSchema
   .extend({
     capability: z.literal("embedding"),
     provider: z.string().min(1, "Provider is required"),
-    model: z.string().min(1, "Model is required"),
+    modelId: z.string().min(1, "Model id is required"),
   })
   .refine(
-    ({ provider, model }) =>
+    ({ provider, modelId }) =>
       findSupportedEmbeddingModel({
-        id: model,
+        id: modelId,
         provider,
       }) !== undefined,
     {
       message: "Embedding model is not supported by this provider",
-      path: ["model"],
+      path: ["modelId"],
     }
   );
 
-const createLlmProviderFormSchema = z.discriminatedUnion("capability", [
+const createModelProviderFormSchema = z.discriminatedUnion("capability", [
   chatProviderSchema,
   embeddingProviderSchema,
 ]);
 
-type CreateLlmProviderFormValues = z.infer<typeof createLlmProviderFormSchema>;
+type CreateModelProviderFormValues = z.infer<
+  typeof createModelProviderFormSchema
+>;
 
-const getModels = (capability: CreateLlmProviderFormValues["capability"]) =>
+const getModels = (capability: CreateModelProviderFormValues["capability"]) =>
   capability === "chat" ? SUPPORTED_CHAT_MODELS : SUPPORTED_EMBEDDING_MODELS;
 
-const getProviders = (capability: CreateLlmProviderFormValues["capability"]) =>
-  Array.from(new Set(getModels(capability).map((model) => model.provider)));
+const getProviders = (
+  capability: CreateModelProviderFormValues["capability"]
+) => Array.from(new Set(getModels(capability).map((model) => model.provider)));
 
-const createDefaultLlmProviderValues = (): CreateLlmProviderFormValues => ({
+const createDefaultModelProviderValues = (): CreateModelProviderFormValues => ({
   name: "",
   capability: "chat",
   provider: DEFAULT_CHAT_MODEL.provider,
-  model: DEFAULT_CHAT_MODEL.id,
+  modelId: DEFAULT_CHAT_MODEL.id,
   apiKey: "",
   baseUrl: null,
 });
 
-type CreateLlmProviderFormProps = Omit<ComponentProps<"form">, "onSubmit"> & {
+type CreateModelProviderFormProps = Omit<ComponentProps<"form">, "onSubmit"> & {
   organizationId: string;
   onSuccess?: () => void;
 };
 
-export const CreateLlmProviderForm = ({
+export const CreateModelProviderForm = ({
   organizationId,
   onSuccess,
   ...formProps
-}: CreateLlmProviderFormProps) => {
+}: CreateModelProviderFormProps) => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    ...createLlmProviderMutationOptions(queryClient, organizationId),
+    ...createModelProviderMutationOptions(queryClient, organizationId),
     onError: (error) => {
       toast.error(error.message);
     },
   });
 
   const form = useForm({
-    defaultValues: createDefaultLlmProviderValues(),
+    defaultValues: createDefaultModelProviderValues(),
     validators: {
-      onBlur: createLlmProviderFormSchema,
-      onSubmit: createLlmProviderFormSchema,
+      onBlur: createModelProviderFormSchema,
+      onSubmit: createModelProviderFormSchema,
     },
     onSubmit: async ({ value }) => {
-      const parsed = createLlmProviderFormSchema.parse(value);
+      const parsed = createModelProviderFormSchema.parse(value);
       const baseUrl = parsed.baseUrl === "" ? null : parsed.baseUrl;
 
       await mutation.mutateAsync({
@@ -141,7 +144,7 @@ export const CreateLlmProviderForm = ({
       });
 
       form.reset();
-      toast.success("LLM provider created.");
+      toast.success("Model created.");
       onSuccess?.();
     },
   });
@@ -149,7 +152,7 @@ export const CreateLlmProviderForm = ({
   return (
     <form
       {...formProps}
-      id="create-llm-provider-form"
+      id="create-model-provider-form"
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -218,7 +221,7 @@ export const CreateLlmProviderForm = ({
 
                           field.handleChange(value);
                           form.setFieldValue("provider", firstModel.provider);
-                          form.setFieldValue("model", firstModel.id);
+                          form.setFieldValue("modelId", firstModel.id);
                         }}
                         value={field.state.value}
                       >
@@ -297,7 +300,10 @@ export const CreateLlmProviderForm = ({
                                   );
 
                                   if (firstModel) {
-                                    form.setFieldValue("model", firstModel.id);
+                                    form.setFieldValue(
+                                      "modelId",
+                                      firstModel.id
+                                    );
                                   }
                                 }}
                                 value={field.state.value}
@@ -330,7 +336,7 @@ export const CreateLlmProviderForm = ({
                         }}
                       </form.Field>
 
-                      <form.Field name="model">
+                      <form.Field name="modelId">
                         {(field) => {
                           const isInvalid =
                             field.state.meta.isTouched &&
@@ -397,7 +403,7 @@ export const CreateLlmProviderForm = ({
                         name={field.name}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="Use provider default"
+                        placeholder="Use model default"
                         type="url"
                         value={field.state.value ?? undefined}
                       />
@@ -452,11 +458,11 @@ export const CreateLlmProviderForm = ({
                 {([canSubmit, submitting]) => (
                   <Button
                     disabled={!canSubmit || submitting}
-                    form="create-llm-provider-form"
+                    form="create-model-provider-form"
                     type="submit"
                   >
                     {submitting && <Spinner data-icon="inline-start" />}
-                    {submitting ? "Creating provider..." : "Create provider"}
+                    {submitting ? "Creating model..." : "Create model"}
                   </Button>
                 )}
               </form.Subscribe>

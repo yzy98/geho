@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { DbClient } from "@heho/db";
 import { and, desc, eq } from "@heho/db/helper";
-import { knowledgeBase, llmProvider } from "@heho/db/schema";
+import { knowledgeBase, modelProvider } from "@heho/db/schema";
 import type { CreateKnowledgeBaseInput } from "../schemas/knowledge-bases";
 
 export type KnowledgeBaseDto = Omit<
@@ -14,7 +14,7 @@ export type KnowledgeBaseDetailsDto = KnowledgeBaseDto & {
     id: string;
     name: string;
     provider: string;
-    model: string;
+    modelId: string;
   };
 };
 
@@ -74,14 +74,14 @@ export const createKnowledgeBase = async ({
   // Check if the provided embedding provider exists in the current organization
   const embeddingProviders = await db
     .select({
-      id: llmProvider.id,
+      id: modelProvider.id,
     })
-    .from(llmProvider)
+    .from(modelProvider)
     .where(
       and(
-        eq(llmProvider.organizationId, organizationId),
-        eq(llmProvider.id, input.embeddingProviderId),
-        eq(llmProvider.capability, "embedding")
+        eq(modelProvider.organizationId, organizationId),
+        eq(modelProvider.id, input.embeddingProviderId),
+        eq(modelProvider.capability, "embedding")
       )
     )
     .limit(1);
@@ -146,18 +146,18 @@ export const getKnowledgeBase = async ({
     .select({
       ...knowledgeBaseSelection,
       embeddingProvider: {
-        id: llmProvider.id,
-        name: llmProvider.name,
-        provider: llmProvider.provider,
-        model: llmProvider.model,
+        id: modelProvider.id,
+        name: modelProvider.name,
+        provider: modelProvider.provider,
+        modelId: modelProvider.modelId,
       },
     })
     .from(knowledgeBase)
     .innerJoin(
-      llmProvider,
+      modelProvider,
       and(
-        eq(knowledgeBase.organizationId, llmProvider.organizationId),
-        eq(knowledgeBase.embeddingProviderId, llmProvider.id)
+        eq(knowledgeBase.organizationId, modelProvider.organizationId),
+        eq(knowledgeBase.embeddingProviderId, modelProvider.id)
       )
     )
     .where(

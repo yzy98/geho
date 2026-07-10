@@ -3,61 +3,61 @@ import type { AppEnv } from "../../context";
 import { requireAuth } from "../../middleware/require-auth";
 import { requireOrganization } from "../../middleware/require-organization";
 import { requireOrganizationPermission } from "../../middleware/require-organization-permission";
-import { createLlmProviderSchema } from "../../schemas/llm-providers";
+import { createModelProviderSchema } from "../../schemas/model-providers";
 import {
-  createLlmProvider,
-  listLlmProviders,
-} from "../../services/llm-providers";
+  createModelProvider,
+  listModelProviders,
+} from "../../services/model-providers";
 import type { RouteDependencies } from "../types";
 import { jsonValidator } from "../validators";
 
-type CreateProviderCollectionRouteOptions = Pick<
+type CreateModelProviderCollectionRouteOptions = Pick<
   RouteDependencies,
   "auth" | "db" | "encryptionKey"
 >;
 
-const createProviderValidator = jsonValidator({
-  schema: createLlmProviderSchema,
-  message: "Invalid llm-provider input.",
+const createModelProviderValidator = jsonValidator({
+  schema: createModelProviderSchema,
+  message: "Invalid model provider input.",
 });
 
-export const createProviderCollectionRoute = ({
+export const createModelProviderCollectionRoute = ({
   auth,
   db,
   encryptionKey,
-}: CreateProviderCollectionRouteOptions) =>
+}: CreateModelProviderCollectionRouteOptions) =>
   new Hono<AppEnv>()
     .use("*", requireAuth(auth))
     .use("*", requireOrganization(auth))
     .get(
       "/",
       requireOrganizationPermission(auth, {
-        llmProvider: ["read"],
+        modelProvider: ["read"],
       }),
       async (c) => {
         const organization = c.get("organization");
 
-        const result = await listLlmProviders({
+        const result = await listModelProviders({
           db,
           organizationId: organization.id,
         });
 
         return c.json({
-          providers: result.providers,
+          modelProviders: result.modelProviders,
         });
       }
     )
     .post(
       "/",
       requireOrganizationPermission(auth, {
-        llmProvider: ["create"],
+        modelProvider: ["create"],
       }),
-      createProviderValidator,
+      createModelProviderValidator,
       async (c) => {
         const organization = c.get("organization");
         const input = c.req.valid("json");
 
-        const result = await createLlmProvider({
+        const result = await createModelProvider({
           db,
           encryptionKey,
           input,
@@ -66,7 +66,7 @@ export const createProviderCollectionRoute = ({
 
         return c.json(
           {
-            provider: result.provider,
+            modelProvider: result.modelProvider,
           },
           201
         );

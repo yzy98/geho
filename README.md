@@ -1,6 +1,6 @@
 # Heho
 
-Open-source, self-hosted AI chatbots for company websites, with transparent RAG and bring-your-own LLM providers.
+Open-source, self-hosted AI chatbots for company websites, with transparent RAG and bring-your-own model providers.
 
 Heho helps teams deploy an embeddable AI chatbot on their own infrastructure. Companies manage agents, knowledge sources, model providers, embed keys, chat logs, and RAG traces from a web dashboard, then install the chatbot on their website through a script tag, React component, or SDK.
 
@@ -8,16 +8,16 @@ Unlike closed chatbot SaaS tools, Heho is designed around control and inspectabi
 
 ## Why Heho?
 
-Many teams want an AI support chatbot, but do not want to send their knowledge base, provider credentials, and customer conversations into a black-box SaaS product.
+Many teams want an AI support chatbot, but do not want to send their knowledge base, model provider credentials, and customer conversations into a black-box SaaS product.
 
 Heho is built for teams that want:
 
 - **Self-hosting**: deploy on your own infrastructure with Docker.
 - **Transparent RAG**: inspect sources, chunks, retrieval scores, prompts, citations, and token usage.
-- **BYO LLM provider**: use OpenAI, Anthropic, Gemini, OpenRouter, DeepSeek, Ollama, vLLM, or any OpenAI-compatible endpoint.
+- **BYO model provider**: use OpenAI, Anthropic, Gemini, OpenRouter, DeepSeek, Ollama, vLLM, or any OpenAI-compatible endpoint.
 - **Embeddable website chat**: install with a lightweight script, React component, or headless SDK.
 - **Developer-first integration**: own the backend, database, widget behavior, and deployment path.
-- **Business control**: keep provider keys, documents, chat logs, and usage data under your control.
+- **Business control**: keep model provider keys, documents, chat logs, and usage data under your control.
 
 ## Product Overview
 
@@ -27,10 +27,10 @@ The core flow:
 
 ```txt
 Admin dashboard
-  -> configure LLM provider
+  -> configure model provider
   -> create knowledge base
   -> add and index knowledge sources
-  -> create chatbot with a chat provider and knowledge base
+  -> create chatbot with a chat model provider and knowledge base
   -> inspect chunks and RAG traces
   -> generate public embed key
   -> install widget on company website
@@ -52,11 +52,11 @@ The first MVP should prove one thing:
 
 1. Admin starts the app locally or on a server.
 2. Admin signs in to the dashboard.
-3. Admin configures chat and embedding Provider capabilities.
-4. Admin creates a Knowledge Base with one embedding Provider.
+3. Admin configures chat and embedding Model Provider capabilities.
+4. Admin creates a Knowledge Base with one embedding Model Provider.
 5. Admin adds a text or URL Knowledge Source to the Knowledge Base.
 6. Heho chunks the content, embeds it, and stores it.
-7. Admin creates a Chatbot with one chat Provider and one Knowledge Base.
+7. Admin creates a Chatbot with one chat Model Provider and one Knowledge Base.
 8. Admin inspects indexed chunks in the dashboard.
 9. Admin generates a public Embed Key.
 10. Company website installs the Chatbot widget.
@@ -73,7 +73,7 @@ The first MVP should prove one thing:
 - Organization and member foundation
 - Chatbot creation and configuration
 - Reusable Knowledge Bases
-- OpenAI-compatible LLM provider configuration
+- OpenAI-compatible model provider configuration
 - Text and URL knowledge sources
 - Chunking and embeddings
 - Vector retrieval
@@ -146,7 +146,7 @@ apps/
 
 packages/
   db             # Drizzle schema and migrations
-  ai             # LLM and embedding provider adapters
+  ai             # Chat and embedding model provider adapters
   rag            # Chunking, retrieval, prompt assembly, citations
   widget         # Vanilla floating chatbot widget
   react          # React ChatbotWidget wrapper
@@ -159,48 +159,49 @@ packages/
 ### Organization
 
 Heho uses the Better Auth organization plugin as its company and tenant model.
-An Organization owns Provider configs, Knowledge Bases, Chatbots, Embed Keys,
-chat logs, and usage. Better Auth members link Dashboard users to
+An Organization owns Model Provider configs, Knowledge Bases, Chatbots, Embed
+Keys, chat logs, and usage. Better Auth members link Dashboard users to
 Organizations; Heho does not maintain an additional tenant or membership
 model.
 
 ### Chatbot
 
 A Chatbot is the website-facing AI assistant. It contains system instructions,
-theme settings, retrieval settings, one chat Provider, and one Knowledge Base.
+theme settings, retrieval settings, one chat Model Provider, and one Knowledge Base.
 Multiple Chatbots can reuse the same Knowledge Base and its indexed vectors.
 
-### LLM Provider
+### Model Provider
 
-A Provider stores one capability-specific configuration needed to call a model
-provider:
+A Model Provider stores one capability-specific configuration needed to call a
+model provider:
 
 ```txt
 capability: chat | embedding
 provider
 base_url
 api_key
-model
+model_id
 ```
 
-Provider keys must be encrypted at rest and never exposed to the browser widget.
+Model Provider keys must be encrypted at rest and never exposed to the browser
+widget.
 
 ### Knowledge Base
 
 A Knowledge Base is an Organization-owned, reusable collection of Knowledge
-Sources. It selects one embedding Provider, and every source chunk and visitor
-question in that Knowledge Base must use the same embedding model and vector
-space.
+Sources. It selects one embedding Model Provider, and every source chunk and
+visitor question in that Knowledge Base must use the same embedding model and
+vector space.
 
 A Knowledge Base can contain many Knowledge Sources and can be reused by many
 Chatbots. A Chatbot uses exactly one Knowledge Base in the MVP.
 
-The embedding Provider association is immutable after Knowledge Base creation,
-and an embedding Provider's model configuration is immutable while a Knowledge
-Base references it. To use a different embedding Provider or model, create a
-new Provider and Knowledge Base, then ingest the Sources again. This keeps every
-Knowledge Chunk in a Knowledge Base within one vector space without maintaining
-multiple index versions.
+The embedding Model Provider association is immutable after Knowledge Base
+creation, and an embedding Model Provider's model configuration is immutable
+while a Knowledge Base references it. To use a different embedding Model
+Provider or model, create a new Model Provider and Knowledge Base, then ingest
+the Sources again. This keeps every Knowledge Chunk in a Knowledge Base within
+one vector space without maintaining multiple index versions.
 
 ### Knowledge Source
 
@@ -230,7 +231,7 @@ confluence
 
 A Knowledge Chunk is a deterministic segment of a Knowledge Source. It stores
 both the segment content and its vector embedding because the MVP fixes one
-immutable embedding Provider and model per Knowledge Base. Chunks are written
+immutable embedding Model Provider and model per Knowledge Base. Chunks are written
 only after their embeddings have been generated and validated.
 
 ### RAG Trace
@@ -301,7 +302,7 @@ request:  raw key -> SHA-256 -> keyHash lookup -> assigned Chatbot
 The raw `pk_*` value is browser-visible and is not a server secret. Its
 capabilities must therefore remain limited to public Widget APIs and be
 protected with tenant isolation, domain policy, revocation, and rate limiting.
-Provider credentials and dashboard APIs must never be accessible through an
+Model Provider credentials and dashboard APIs must never be accessible through an
 embed key.
 
 ## Minimal Database Model
@@ -314,7 +315,7 @@ organization
 member
 
 chatbot
-llm_provider
+model_provider
 knowledge_base
 knowledge_source
 knowledge_chunk
@@ -331,14 +332,14 @@ Current and planned tenant relationships:
 ```mermaid
 erDiagram
     ORGANIZATION ||--o{ MEMBER : has
-    ORGANIZATION ||--o{ LLM_PROVIDER : configures
+    ORGANIZATION ||--o{ MODEL_PROVIDER : configures
     ORGANIZATION ||--o{ KNOWLEDGE_BASE : owns
     ORGANIZATION ||--o{ KNOWLEDGE_SOURCE : owns
     ORGANIZATION ||--o{ KNOWLEDGE_CHUNK : owns
     ORGANIZATION ||--o{ CHATBOT : owns
 
-    LLM_PROVIDER ||--o{ KNOWLEDGE_BASE : "embeds for"
-    LLM_PROVIDER ||--o{ CHATBOT : "chats for"
+    MODEL_PROVIDER ||--o{ KNOWLEDGE_BASE : "embeds for"
+    MODEL_PROVIDER ||--o{ CHATBOT : "chats for"
     KNOWLEDGE_BASE ||--o{ KNOWLEDGE_SOURCE : contains
     KNOWLEDGE_BASE ||--o{ CHATBOT : "is reused by"
 
@@ -352,12 +353,12 @@ erDiagram
     ORGANIZATION {
         text id PK
     }
-    LLM_PROVIDER {
+    MODEL_PROVIDER {
         text id PK
         text organization_id FK
         text capability
         text provider
-        text model
+        text model_id
         text encrypted_api_key
     }
     KNOWLEDGE_BASE {
@@ -419,8 +420,8 @@ erDiagram
 ```
 
 The Better Auth Organization is the tenant boundary. Direct tenant keys and
-tenant-scoped foreign keys prevent a Provider, Knowledge Base, Chatbot, or RAG
-record from being associated across Organizations.
+tenant-scoped foreign keys prevent a Model Provider, Knowledge Base, Chatbot,
+or RAG record from being associated across Organizations.
 
 ## Widget Integration
 
@@ -468,7 +469,7 @@ const response = await heho.chat.sendMessage({
 ## Security Principles
 
 - Public embed keys must support domain allowlists.
-- Provider API keys must be encrypted at rest.
+- Model Provider API keys must be encrypted at rest.
 - Widget requests must be rate-limited.
 - Chatbot access must be scoped by embed key.
 - Admin APIs must require authenticated organization membership.
@@ -488,7 +489,7 @@ source input
   -> store vector in pgvector
   -> retrieve by question embedding
   -> assemble prompt
-  -> call LLM provider
+  -> call model provider
   -> return answer with citations
   -> save trace and usage
 ```
@@ -607,7 +608,7 @@ Recommended model:
 - Self-hosted dashboard
 - Chatbot widget
 - Basic RAG
-- BYO provider
+- BYO model provider
 - Basic traces
 - Basic usage tracking
 
@@ -643,7 +644,7 @@ Heho is not:
 
 Heho is:
 
-> An open-source, self-hosted AI chatbot platform for company websites, with transparent RAG, BYO LLM providers, and embeddable widgets.
+> An open-source, self-hosted AI chatbot platform for company websites, with transparent RAG, BYO model providers, and embeddable widgets.
 
 ## Status
 
@@ -655,12 +656,12 @@ Current checkpoint:
 local self-host dev stack
   -> dashboard login
   -> organization onboarding
-  -> configure chat and embedding providers
+  -> configure chat and embedding model providers
   -> create reusable knowledge base
   -> add text knowledge source
   -> chunk, embed, and store vectors in pgvector
   -> preview retrieval from the dashboard
-  -> create chatbot with chat provider + knowledge base
+  -> create chatbot with chat model provider + knowledge base
   -> ask the chatbot from the dashboard
   -> receive answer, citations, and traceId
   -> save rag_trace with retrieved chunks, prompt preview, model, latency, and citations
@@ -679,7 +680,7 @@ expanding into public widget delivery.
 Current milestone:
 
 ```txt
-provider setup
+model provider setup
   -> reusable knowledge base
   -> text source ingestion
   -> retrieval preview
@@ -717,7 +718,7 @@ project's chosen Drizzle rollout path: generated migrations or an explicit
 - [x] Create simple table and apply changes to local database
 - [x] Replace test `users` table with [Better-Auth](https://better-auth.com/docs/installation#create-database-tables) required schemas.
 - [x] Add [organization-related schemas](https://better-auth.com/docs/plugins/organization#schema).
-- [x] Draw ERD and implement `llmProvider` and `chatbot` schemas.
+- [x] Draw ERD and implement `modelProvider` and `chatbot` schemas.
 
 ### Checkpoint 3: Auth and Organization Onboarding
 
@@ -762,56 +763,58 @@ project's chosen Drizzle rollout path: generated migrations or an explicit
   - [x] `pnpm typecheck`
   - [x] Relevant auth and organization tests.
 
-### Checkpoint 4: LLM Provider Setup
+### Checkpoint 4: Model Provider Setup
 
 - [x] Define supported chat and embedding model catalogs shared by the API and
       dashboard.
-- [x] Model one `llm_provider` row as one capability and credential:
+- [x] Model one `model_provider` row as one capability and credential:
   - [x] `chat`
   - [x] `embedding`
-- [x] Store the Provider name, implementation, model, optional custom base URL,
-      and encrypted API key.
+- [x] Store the Model Provider name, implementation, model ID, optional custom
+      base URL, and encrypted API key.
 - [x] Pass custom base URLs to AI SDK provider factories while preserving each
       provider's default URL when none is configured.
-- [x] Encrypt Provider API keys with `APP_ENCRYPTION_KEY` using compact JWE,
-      direct encryption, and `A256GCM`.
-- [x] Add authenticated Provider APIs:
-  - [x] `GET /llm-providers`
-  - [x] `POST /llm-providers`
+- [x] Encrypt Model Provider API keys with `APP_ENCRYPTION_KEY` using compact
+      JWE, direct encryption, and `A256GCM`.
+- [x] Add authenticated Model Provider APIs:
+  - [x] `GET /model-providers`
+  - [x] `POST /model-providers`
 - [x] Derive `organizationId` from the authenticated user's membership; never
       accept it from the dashboard.
-- [x] Allow all organization members to list Providers and restrict creation to
-      the organization `owner`.
-- [x] Return safe Provider projections without API keys, encrypted credentials,
-      or organization IDs.
-- [x] Add the dashboard Provider list, empty/loading/error states, and responsive
+- [x] Allow all organization members to list Model Providers and restrict
+      creation to the organization `owner`.
+- [x] Return safe Model Provider projections without API keys, encrypted
+      credentials, or organization IDs.
+- [x] Add the dashboard Models list, empty/loading/error states, and responsive
       creation dialog.
 - [x] Infer dashboard request and response types from the Hono client and
-      invalidate the organization-scoped Provider query after creation.
+      invalidate the organization-scoped Model Provider query after creation.
 - [x] Acceptance:
-  - [x] An owner can create chat and embedding Provider configurations.
-  - [x] Members can list Providers but cannot create them.
-  - [x] Provider credentials are encrypted at rest and never returned to the
-        dashboard.
-  - [x] Provider reads and writes are scoped to the authenticated user's
+  - [x] An owner can create chat and embedding Model Provider configurations.
+  - [x] Members can list Model Providers but cannot create them.
+  - [x] Model Provider credentials are encrypted at rest and never returned to
+        the dashboard.
+  - [x] Model Provider reads and writes are scoped to the authenticated user's
         organization.
 - [x] Run:
   - [x] `pnpm check`
   - [x] `pnpm typecheck`
-  - [x] Provider API, encryption, authorization, and tenant-isolation tests.
+  - [x] Model Provider API, encryption, authorization, and tenant-isolation
+        tests.
 
 Chatbot API and dashboard work are intentionally deferred to Checkpoint 5.
 
 ### Checkpoint 5: Chatbot Setup
 
-- [x] Add the initial `chatbot` schema with capability-specific Provider
+- [x] Add the initial `chatbot` schema with capability-specific Model Provider
       references:
   - [x] `chat_provider_id`
   - [x] `embedding_provider_id`
 - [x] Remove duplicated chat and embedding model fields from `chatbot`; each
-      selected Provider row already owns its capability, model, and credential.
-- [x] Preserve Chatbots when a referenced Provider is deleted by setting the
-      corresponding Provider reference to `null`.
+      selected Model Provider row already owns its capability, model ID, and
+      credential.
+- [x] Preserve Chatbots when a referenced Model Provider is deleted by setting
+      the corresponding Model Provider reference to `null`.
 - [x] Add authenticated Chatbot APIs:
   - [x] `GET /chatbots`
   - [x] `POST /chatbots`
@@ -819,7 +822,7 @@ Chatbot API and dashboard work are intentionally deferred to Checkpoint 5.
       accept it from the dashboard.
 - [x] Allow all organization members to list Chatbots and restrict creation to
       the organization `owner`.
-- [x] Validate that selected Providers:
+- [x] Validate that selected Model Providers:
   - [x] Belong to the current organization.
   - [x] Match the required `chat` or `embedding` capability.
 - [x] Add the dashboard Chatbot list, empty/loading/error states, and responsive
@@ -827,20 +830,20 @@ Chatbot API and dashboard work are intentionally deferred to Checkpoint 5.
 - [x] Limit the first Chatbot slice to create and list; defer update, delete,
       model execution, RAG, and widget behavior.
 - [x] Acceptance:
-  - [x] An owner can create a Chatbot using chat and embedding Providers from
-        the current organization.
+  - [x] An owner can create a Chatbot using chat and embedding Model Providers
+        from the current organization.
   - [x] Members can list Chatbots but cannot create them.
-  - [x] Cross-organization and capability-mismatched Provider references are
-        rejected.
-  - [ ] Chatbot responses do not expose Provider credentials or organization
-        IDs.
+  - [x] Cross-organization and capability-mismatched Model Provider references
+        are rejected.
+  - [ ] Chatbot responses do not expose Model Provider credentials or
+        organization IDs.
 - [x] Run:
   - [x] `pnpm check`
   - [x] `pnpm typecheck`
   - [x] Chatbot API, authorization, capability, and tenant-isolation tests.
 
 Checkpoint 7 supersedes the initial embedding ownership above: Embedding
-Providers now belong to reusable Knowledge Bases, and Chatbots reference a
+Model Providers now belong to reusable Knowledge Bases, and Chatbots reference a
 Knowledge Base instead of storing `embedding_provider_id`.
 
 ### Checkpoint 6: Embed Keys and Domain Allowlist
@@ -889,44 +892,45 @@ Knowledge Base instead of storing `embedding_provider_id`.
 ### Checkpoint 7: Reusable Knowledge Base Foundation
 
 - [x] Add the Organization-owned `knowledge_base` schema.
-- [x] Give each Knowledge Base one required embedding Provider.
-- [x] Keep the Knowledge Base embedding Provider association immutable after
-      creation.
-- [x] Enforce tenant-safe Provider, Knowledge Base, Chatbot, and Embed Key
+- [x] Give each Knowledge Base one required embedding Model Provider.
+- [x] Keep the Knowledge Base embedding Model Provider association immutable
+      after creation.
+- [x] Enforce tenant-safe Model Provider, Knowledge Base, Chatbot, and Embed Key
       relationships with composite constraints.
 - [x] Move embedding ownership from `chatbot.embedding_provider_id` to
       `knowledge_base.embedding_provider_id`.
 - [x] Replace the Chatbot creation input `embeddingProviderId` with
       `knowledgeBaseId`.
-- [x] Keep one required chat Provider per Chatbot.
+- [x] Keep one required chat Model Provider per Chatbot.
 - [x] Add authenticated Knowledge Base APIs:
   - [x] `GET /knowledge-bases`
   - [x] `POST /knowledge-bases`
 - [x] Derive `organizationId` from authenticated membership and reject
-      cross-Organization or non-embedding Provider references.
+      cross-Organization or non-embedding Model Provider references.
 - [x] Allow all Organization members to list Knowledge Bases and restrict
       creation to the Organization owner.
 - [x] Add the `/knowledge-bases` Dashboard route with:
   - [x] Organization-scoped TanStack Query cache keys.
   - [x] Empty, loading, error, and success states.
   - [x] Owner-only responsive creation form.
-  - [x] Embedding Provider selection.
-  - [x] Contextual navigation to `/providers` when no embedding Provider exists.
+  - [x] Embedding Model Provider selection.
+  - [x] Contextual navigation to `/models` when no embedding Model Provider
+        exists.
 - [x] Refactor the Chatbot Dashboard:
-  - [x] Replace the Embedding Provider field with a Knowledge Base field.
+  - [x] Replace the Embedding Model Provider field with a Knowledge Base field.
   - [x] Load Knowledge Bases in the Chatbot route.
   - [x] Show the selected Knowledge Base on each Chatbot card.
-  - [x] Guide owners to create missing Chat Providers or Knowledge Bases.
-- [x] Preserve `/providers` as the only place that stores Provider credentials,
-      Base URLs, and model configuration.
+  - [x] Guide owners to create missing chat models or Knowledge Bases.
+- [x] Preserve `/models` as the only place that stores Model Provider
+      credentials, Base URLs, and model configuration.
 - [x] Acceptance:
   - [x] An owner can create a Knowledge Base before creating a Chatbot.
   - [x] Multiple Chatbots can reference the same Knowledge Base.
   - [x] A Chatbot uses its Knowledge Base's embedding model for future
-        retrieval and its own chat Provider for answer generation.
+        retrieval and its own chat Model Provider for answer generation.
   - [x] Members can view Knowledge Bases but cannot create them.
-  - [x] Provider credentials and Organization IDs are not exposed by Knowledge
-        Base responses.
+  - [x] Model Provider credentials and Organization IDs are not exposed by
+        Knowledge Base responses.
 - [x] Run:
   - [x] `pnpm check`
   - [x] `pnpm typecheck`
@@ -943,7 +947,7 @@ Knowledge Base instead of storing `embedding_provider_id`.
 - [x] Support `text` sources.
 - [x] Implement deterministic chunking in `packages/rag`.
 - [x] Generate Source embeddings through the Knowledge Base's configured
-      embedding Provider.
+      embedding Model Provider.
 - [x] Store each Chunk's content and vector embedding together in
       `knowledge_chunk`.
 - [x] Validate the complete embedding batch before writing Knowledge Chunks.
@@ -962,7 +966,7 @@ Knowledge Base instead of storing `embedding_provider_id`.
 ### Checkpoint 9: Dashboard Retrieval Preview
 
 - [x] Add a reusable retrieval module that:
-  - [x] Embeds the query with the Knowledge Base's embedding Provider.
+  - [x] Embeds the query with the Knowledge Base's embedding Model Provider.
   - [x] Searches `knowledge_chunk` through pgvector.
   - [x] Restricts retrieval to the selected Organization and Knowledge Base.
   - [x] Returns chunk content, Source title, chunk index, and similarity.
@@ -984,7 +988,7 @@ Knowledge Base instead of storing `embedding_provider_id`.
 - [x] Add `rag_trace` schema for Dashboard RAG preview traces.
 - [x] Assemble the RAG prompt with retrieved chunk IDs, Source titles, chunk
       indexes, scores, and content.
-- [x] Call the Chatbot's chat Provider with structured output:
+- [x] Call the Chatbot's chat Model Provider with structured output:
   - [x] `answer`
   - [x] `citedChunkIds`
 - [x] Filter citations server-side so only actually retrieved chunks can be
@@ -1106,13 +1110,13 @@ Knowledge Base instead of storing `embedding_provider_id`.
 - [ ] Add widget welcome message and basic theme variables.
 - [ ] Add dashboard empty states and actionable error states.
 - [ ] Complete the onboarding checklist for:
-  - [ ] Provider configured
+  - [ ] Model configured
   - [ ] Knowledge Base created
   - [ ] Knowledge Source ready
   - [ ] Chatbot created
   - [ ] Embed key created
   - [ ] Widget installed
-- [ ] Verify all provider credentials remain server-only.
+- [ ] Verify all model provider credentials remain server-only.
 - [ ] Verify every admin query derives the current organization from Better
       Auth membership.
 - [ ] Acceptance:
@@ -1151,7 +1155,7 @@ Knowledge Base instead of storing `embedding_provider_id`.
 - [ ] Run acceptance test:
   - [ ] Admin signs in
   - [ ] Default organization is created
-  - [ ] Admin saves provider config
+  - [ ] Admin saves model provider config
   - [ ] Admin creates Knowledge Base
   - [ ] Admin adds text source to the Knowledge Base
   - [ ] Source is indexed into chunks
@@ -1166,7 +1170,7 @@ Knowledge Base instead of storing `embedding_provider_id`.
 - [ ] Test retry and failure paths:
   - [ ] Repeated organization bootstrap
   - [ ] Repeated ingestion job
-  - [ ] Provider failure
+  - [ ] Model provider failure
   - [ ] Invalid embed key
   - [ ] Cross-organization access attempt
 - [ ] Run the complete required checks:

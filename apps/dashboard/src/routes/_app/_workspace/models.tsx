@@ -21,24 +21,24 @@ import {
 } from "@tanstack/react-router";
 import { AlertTriangleIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
-import { CreateLlmProviderDialog } from "@/components/dialogs/create-llm-provider-dialog";
+import { CreateModelProviderDialog } from "@/components/dialogs/create-model-provider-dialog";
 import { useOrganizationPermission } from "@/hooks/use-organization-permission";
 import {
-  type LlmProvider,
-  llmProvidersQueryOptions,
-} from "@/queries/llm-provider";
+  type ModelProvider,
+  modelProvidersQueryOptions,
+} from "@/queries/model-provider";
 import { organizationPermissionQueryOptions } from "@/queries/organization-permission";
 import type { DashboardBreadcrumbContext } from "@/routes/__root";
 
-export const Route = createFileRoute("/_app/_workspace/providers")({
+export const Route = createFileRoute("/_app/_workspace/models")({
   context: ({ context }): DashboardBreadcrumbContext => ({
     breadcrumbs: [
       ...context.breadcrumbs,
       {
-        id: "providers",
-        label: "Providers",
+        id: "models",
+        label: "Models",
         linkOptions: linkOptions({
-          to: "/providers",
+          to: "/models",
         }),
       },
     ],
@@ -46,52 +46,52 @@ export const Route = createFileRoute("/_app/_workspace/providers")({
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(
-        llmProvidersQueryOptions(context.organization.id)
+        modelProvidersQueryOptions(context.organization.id)
       ),
       context.queryClient.ensureQueryData(
         organizationPermissionQueryOptions(
           context.organization.id,
-          "createLlmProvider"
+          "createModelProvider"
         )
       ),
     ]),
-  pendingComponent: ProvidersPending,
-  errorComponent: ProvidersError,
-  component: ProvidersPage,
+  pendingComponent: ModelsPending,
+  errorComponent: ModelsError,
+  component: ModelsPage,
 });
 
-function ProvidersPage() {
+function ModelsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const { organization } = Route.useRouteContext();
   const {
-    data: { providers },
-  } = useSuspenseQuery(llmProvidersQueryOptions(organization.id));
+    data: { modelProviders },
+  } = useSuspenseQuery(modelProvidersQueryOptions(organization.id));
 
-  const canCreateProvider = useOrganizationPermission("createLlmProvider");
+  const canAddModel = useOrganizationPermission("createModelProvider");
 
   return (
     <>
       <div className="mb-4 flex items-start justify-between gap-4">
         <p className="text-muted-foreground text-sm">
-          Configure model providers used by your chatbots.
+          Configure chat and embedding models used by your chatbots.
         </p>
-        {canCreateProvider && (
+        {canAddModel && (
           <Button onClick={() => setCreateDialogOpen(true)}>
             <PlusIcon data-icon="inline-start" />
-            Add provider
+            Add model
           </Button>
         )}
       </div>
 
-      {providers.length === 0 ? (
-        <ProvidersEmptyAlert canCreate={canCreateProvider} />
+      {modelProviders.length === 0 ? (
+        <ModelsEmptyAlert canCreate={canAddModel} />
       ) : (
-        <ProviderList providers={providers} />
+        <ModelList models={modelProviders} />
       )}
 
-      {canCreateProvider && (
-        <CreateLlmProviderDialog
+      {canAddModel && (
+        <CreateModelProviderDialog
           onOpenChange={setCreateDialogOpen}
           open={createDialogOpen}
           organizationId={organization.id}
@@ -101,56 +101,56 @@ function ProvidersPage() {
   );
 }
 
-function ProvidersEmptyAlert({ canCreate }: { canCreate: boolean }) {
+function ModelsEmptyAlert({ canCreate }: { canCreate: boolean }) {
   return (
     <Alert>
       <AlertTriangleIcon />
-      <AlertTitle>No LLM providers configured</AlertTitle>
+      <AlertTitle>No models configured</AlertTitle>
       <AlertDescription>
         {canCreate
-          ? "Configure a model provider."
-          : "You do not have permission to configure model providers."}
+          ? "Configure a model."
+          : "You do not have permission to configure models."}
       </AlertDescription>
     </Alert>
   );
 }
 
-function ProviderList({ providers }: { providers: LlmProvider[] }) {
+function ModelList({ models }: { models: ModelProvider[] }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      {providers.map((provider) => (
-        <ProviderCard key={provider.id} provider={provider} />
+      {models.map((model) => (
+        <ModelCard key={model.id} model={model} />
       ))}
     </div>
   );
 }
 
-function ProviderCard({ provider }: { provider: LlmProvider }) {
+function ModelCard({ model }: { model: ModelProvider }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{provider.name}</CardTitle>
-        <CardDescription>{provider.provider}</CardDescription>
+        <CardTitle>{model.name}</CardTitle>
+        <CardDescription>{model.provider}</CardDescription>
       </CardHeader>
 
       <CardContent>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
           <dt className="text-muted-foreground">Capability</dt>
           <dd className="text-right">
-            {provider.capability === "chat" ? "Chat" : "Embedding"}
+            {model.capability === "chat" ? "Chat" : "Embedding"}
           </dd>
 
           <dt className="text-muted-foreground">Model</dt>
-          <dd className="truncate text-right" title={provider.model}>
-            {provider.model}
+          <dd className="truncate text-right" title={model.modelId}>
+            {model.modelId}
           </dd>
 
           <dt className="text-muted-foreground">Base URL</dt>
           <dd
             className="truncate text-right"
-            title={provider.baseUrl ?? "Provider default"}
+            title={model.baseUrl ?? "Model default"}
           >
-            {provider.baseUrl ?? "Provider default"}
+            {model.baseUrl ?? "Model default"}
           </dd>
 
           <dt className="text-muted-foreground">Credential</dt>
@@ -161,7 +161,7 @@ function ProviderCard({ provider }: { provider: LlmProvider }) {
   );
 }
 
-function ProvidersPending() {
+function ModelsPending() {
   return (
     <div className="flex flex-col gap-6">
       <div className="space-y-2">
@@ -177,11 +177,11 @@ function ProvidersPending() {
   );
 }
 
-function ProvidersError({ error, reset }: ErrorComponentProps) {
+function ModelsError({ error, reset }: ErrorComponentProps) {
   return (
     <Alert variant="destructive">
       <AlertTriangleIcon />
-      <AlertTitle>Unable to load providers</AlertTitle>
+      <AlertTitle>Unable to load models</AlertTitle>
       <AlertDescription>
         {error instanceof Error
           ? error.message

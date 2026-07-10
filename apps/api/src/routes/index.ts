@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { createChatbotRoutes } from "./chatbots";
 import { createKnowledgeBaseRoutes } from "./knowledge-bases";
+import { createModelProviderRoutes } from "./model-providers";
 import { createOrganizationRoutes } from "./organizations";
-import { createProviderRoutes } from "./providers";
 import type { RouteDependencies } from "./types";
 
 export const createApiRoutes = ({
@@ -17,7 +17,10 @@ export const createApiRoutes = ({
 
     // Protected route
     .route("/organizations", createOrganizationRoutes({ auth, db }))
-    .route("/llm-providers", createProviderRoutes({ auth, db, encryptionKey }))
+    .route(
+      "/model-providers",
+      createModelProviderRoutes({ auth, db, encryptionKey })
+    )
     .route(
       "/knowledge-bases",
       createKnowledgeBaseRoutes({

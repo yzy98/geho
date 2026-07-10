@@ -21,17 +21,17 @@ const chatProviderSchema = baseSchema
   .extend({
     capability: z.literal("chat"),
     provider: z.string().min(1),
-    model: z.string().min(1),
+    modelId: z.string().min(1),
   })
   .refine(
-    ({ provider, model }) =>
+    ({ provider, modelId }) =>
       findSupportedChatModel({
-        id: model,
+        id: modelId,
         provider,
       }) !== undefined,
     {
       message: "Chat model is not supported by this provider",
-      path: ["model"],
+      path: ["modelId"],
     }
   );
 
@@ -39,23 +39,25 @@ const embeddingProviderSchema = baseSchema
   .extend({
     capability: z.literal("embedding"),
     provider: z.string().min(1),
-    model: z.string().min(1),
+    modelId: z.string().min(1),
   })
   .refine(
-    ({ provider, model }) =>
+    ({ provider, modelId }) =>
       findSupportedEmbeddingModel({
-        id: model,
+        id: modelId,
         provider,
       }) !== undefined,
     {
       message: "Embedding model is not supported by this provider",
-      path: ["model"],
+      path: ["modelId"],
     }
   );
 
-export const createLlmProviderSchema = z.discriminatedUnion("capability", [
+export const createModelProviderSchema = z.discriminatedUnion("capability", [
   chatProviderSchema,
   embeddingProviderSchema,
 ]);
 
-export type CreateLlmProviderInput = z.infer<typeof createLlmProviderSchema>;
+export type CreateModelProviderInput = z.infer<
+  typeof createModelProviderSchema
+>;

@@ -7,7 +7,7 @@ import {
 
 const statements = {
   ...defaultStatements,
-  llmProvider: ["create", "read", "update", "delete"],
+  modelProvider: ["create", "read", "update", "delete"],
   knowledgeBase: ["create", "read", "update", "delete"],
   knowledgeSource: ["create", "read", "delete", "retry"],
   chatbot: ["create", "read", "update", "delete"],
@@ -18,7 +18,7 @@ export const organizationAC = createAccessControl(statements);
 
 const owner = organizationAC.newRole({
   ...ownerAc.statements,
-  llmProvider: ["create", "read", "update", "delete"],
+  modelProvider: ["create", "read", "update", "delete"],
   knowledgeBase: ["create", "read", "update", "delete"],
   knowledgeSource: ["create", "read", "delete", "retry"],
   chatbot: ["create", "read", "update", "delete"],
@@ -27,7 +27,7 @@ const owner = organizationAC.newRole({
 
 const member = organizationAC.newRole({
   ...memberAc.statements,
-  llmProvider: ["read"],
+  modelProvider: ["read"],
   knowledgeBase: ["read"],
   knowledgeSource: ["read"],
   chatbot: ["read"],

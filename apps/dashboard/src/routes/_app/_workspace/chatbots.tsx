@@ -37,9 +37,9 @@ import {
   knowledgeBasesQueryOptions,
 } from "@/queries/knowledge-base";
 import {
-  type LlmProvider,
-  llmProvidersQueryOptions,
-} from "@/queries/llm-provider";
+  type ModelProvider,
+  modelProvidersQueryOptions,
+} from "@/queries/model-provider";
 import { organizationPermissionQueryOptions } from "@/queries/organization-permission";
 import type { DashboardBreadcrumbContext } from "@/routes/__root";
 
@@ -62,7 +62,7 @@ export const Route = createFileRoute("/_app/_workspace/chatbots")({
         chatbotsQueryOptions(context.organization.id)
       ),
       context.queryClient.ensureQueryData(
-        llmProvidersQueryOptions(context.organization.id)
+        modelProvidersQueryOptions(context.organization.id)
       ),
       context.queryClient.ensureQueryData(
         knowledgeBasesQueryOptions(context.organization.id)
@@ -97,8 +97,8 @@ function ChatbotsPage() {
     data: { chatbots },
   } = useSuspenseQuery(chatbotsQueryOptions(organization.id));
   const {
-    data: { providers },
-  } = useSuspenseQuery(llmProvidersQueryOptions(organization.id));
+    data: { modelProviders: models },
+  } = useSuspenseQuery(modelProvidersQueryOptions(organization.id));
   const {
     data: { knowledgeBases },
   } = useSuspenseQuery(knowledgeBasesQueryOptions(organization.id));
@@ -126,19 +126,19 @@ function ChatbotsPage() {
         <ChatbotList
           chatbots={chatbots}
           knowledgeBases={knowledgeBases}
+          models={models}
           onManageEmbedKeys={setManagedChatbot}
           onPreviewChatbot={setPreviewedChatbot}
-          providers={providers}
         />
       )}
 
       {canCreateChatbot && (
         <CreateChatDialog
           knowledgeBases={knowledgeBases}
+          models={models}
           onOpenChange={setCreateChatbotDialogOpen}
           open={createChatbotDialogOpen}
           organizationId={organization.id}
-          providers={providers}
         />
       )}
 
@@ -187,7 +187,7 @@ function ChatbotsEmptyAlert({ canCreate }: { canCreate: boolean }) {
 
 type ChatbotListProps = {
   chatbots: Chatbot[];
-  providers: LlmProvider[];
+  models: ModelProvider[];
   knowledgeBases: KnowledgeBase[];
   onManageEmbedKeys: (chatbot: Chatbot) => void;
   onPreviewChatbot: (chatbot: Chatbot) => void;
@@ -195,14 +195,12 @@ type ChatbotListProps = {
 
 function ChatbotList({
   chatbots,
-  providers,
+  models,
   knowledgeBases,
   onManageEmbedKeys,
   onPreviewChatbot,
 }: ChatbotListProps) {
-  const providersById = new Map(
-    providers.map((provider) => [provider.id, provider])
-  );
+  const modelsById = new Map(models.map((model) => [model.id, model]));
   const knowledgeBasesById = new Map(
     knowledgeBases.map((knowledgeBase) => [knowledgeBase.id, knowledgeBase])
   );
@@ -212,7 +210,7 @@ function ChatbotList({
       {chatbots.map((chatbot) => (
         <ChatbotCard
           chatbot={chatbot}
-          chatProvider={providersById.get(chatbot.chatProviderId)}
+          chatModel={modelsById.get(chatbot.chatProviderId)}
           key={chatbot.id}
           knowledgeBase={knowledgeBasesById.get(chatbot.knowledgeBaseId)}
           onManageEmbedKeys={onManageEmbedKeys}
@@ -225,7 +223,7 @@ function ChatbotList({
 
 type ChatbotCardProps = {
   chatbot: Chatbot;
-  chatProvider: LlmProvider | undefined;
+  chatModel: ModelProvider | undefined;
   knowledgeBase: KnowledgeBase | undefined;
   onManageEmbedKeys: (chatbot: Chatbot) => void;
   onPreviewChatbot: (chatbot: Chatbot) => void;
@@ -233,7 +231,7 @@ type ChatbotCardProps = {
 
 function ChatbotCard({
   chatbot,
-  chatProvider,
+  chatModel,
   knowledgeBase,
   onManageEmbedKeys,
   onPreviewChatbot,
@@ -249,10 +247,8 @@ function ChatbotCard({
 
       <CardContent>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-          <dt className="text-muted-foreground">Chat provider</dt>
-          <dd className="truncate text-right">
-            {formatProvider(chatProvider)}
-          </dd>
+          <dt className="text-muted-foreground">Chat model</dt>
+          <dd className="truncate text-right">{formatModel(chatModel)}</dd>
           <dt className="text-muted-foreground">Knowledge base</dt>
           <dd
             className="truncate text-right"
@@ -288,12 +284,12 @@ function ChatbotCard({
   );
 }
 
-function formatProvider(provider?: LlmProvider) {
-  if (!provider) {
-    return "Provider missing";
+function formatModel(model?: ModelProvider) {
+  if (!model) {
+    return "Model missing";
   }
 
-  return `${provider.name} · ${provider.provider} · ${provider.model}`;
+  return `${model.name} · ${model.provider} · ${model.modelId}`;
 }
 
 function ChatbotsPending() {
