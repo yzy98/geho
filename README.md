@@ -647,61 +647,65 @@ Heho is:
 
 ## Status
 
-This repository is currently at the project planning stage.
+This repository has moved past planning into an authenticated Dashboard MVP.
 
-Planned first milestone:
+Current checkpoint:
 
 ```txt
-Docker Compose self-host MVP
+local self-host dev stack
   -> dashboard login
-  -> configure provider
-  -> create knowledge base
-  -> add text/URL source and index it
-  -> create chatbot
-  -> inspect chunks
-  -> embed widget
-  -> answer visitor questions with citations
-  -> inspect RAG trace
+  -> organization onboarding
+  -> configure chat and embedding providers
+  -> create reusable knowledge base
+  -> add text knowledge source
+  -> chunk, embed, and store vectors in pgvector
+  -> preview retrieval from the dashboard
+  -> create chatbot with chat provider + knowledge base
+  -> ask the chatbot from the dashboard
+  -> receive answer, citations, and traceId
+  -> save rag_trace with retrieved chunks, prompt preview, model, latency, and citations
 ```
+
+Minimal RAG is complete for the authenticated Dashboard preview path. Public
+widget chat, chat sessions/messages, URL ingestion, trace detail UI, and token
+usage accounting are intentionally deferred until after this checkpoint.
 
 ## Development Plan
 
-The first development target is a tight two-week MVP focused on one complete
-flow:
+The current development process is checkpoint-driven rather than a fixed
+two-week calendar. The priority is a narrow, inspectable RAG loop before
+expanding into public widget delivery.
+
+Current milestone:
 
 ```txt
-self-host Docker stack
-  -> admin dashboard
-  -> configure LLM provider
-  -> create knowledge base
-  -> add text/URL knowledge source
-  -> index into pgvector
-  -> create chatbot with the knowledge base
-  -> generate public embed key
-  -> install widget
-  -> visitor asks question
-  -> chatbot answers with citations
-  -> dashboard shows RAG trace
+provider setup
+  -> reusable knowledge base
+  -> text source ingestion
+  -> retrieval preview
+  -> chatbot ask preview
+  -> rag_trace persistence
 ```
 
-The priority is an end-to-end product loop, not a broad platform. Each day
-must end with:
+Each checkpoint should end with:
 
-- A locally runnable product checkpoint.
-- An observable acceptance result.
-- Relevant automated checks passing.
+- A locally runnable product path.
+- A visible Dashboard acceptance result.
+- Tenant isolation preserved through authenticated Organization membership.
+- Relevant `typecheck` and `build` commands passing.
 
-Database schemas and migrations are introduced by the vertical slice that
-first needs them. Security and tenant isolation are acceptance requirements,
-not deferred hardening tasks.
+Database schemas are introduced by the vertical slice that first needs them.
+For production or shared environments, schema changes must be paired with the
+project's chosen Drizzle rollout path: generated migrations or an explicit
+`drizzle-kit push` workflow.
 
-### Day 1: Project Skeleton
+### Checkpoint 1: Project Skeleton
 
 - [x] Scaffold monorepo basic skeleton.
 - [x] Configure typescript, turbo, biome and zed setting.
 - [x] Add root scripts and verify.
 
-### Day 2: Local Runtime && Database foundation
+### Checkpoint 2: Local Runtime && Database foundation
 
 - [x] Add Docker Compose for local self-hosting:
   - [x] PostgreSQL with pgvector
@@ -715,7 +719,7 @@ not deferred hardening tasks.
 - [x] Add [organization-related schemas](https://better-auth.com/docs/plugins/organization#schema).
 - [x] Draw ERD and implement `llmProvider` and `chatbot` schemas.
 
-### Day 3: Auth and Organization Onboarding
+### Checkpoint 3: Auth and Organization Onboarding
 
 - [x] Add the Hono API and Vite + React dashboard app foundations.
 - [x] Configure TanStack Router, TanStack Query, and the local `/api` proxy.
@@ -758,7 +762,7 @@ not deferred hardening tasks.
   - [x] `pnpm typecheck`
   - [x] Relevant auth and organization tests.
 
-### Day 4: LLM Provider Setup
+### Checkpoint 4: LLM Provider Setup
 
 - [x] Define supported chat and embedding model catalogs shared by the API and
       dashboard.
@@ -796,9 +800,9 @@ not deferred hardening tasks.
   - [x] `pnpm typecheck`
   - [x] Provider API, encryption, authorization, and tenant-isolation tests.
 
-Chatbot API and dashboard work are intentionally deferred to Day 5.
+Chatbot API and dashboard work are intentionally deferred to Checkpoint 5.
 
-### Day 5: Chatbot Setup
+### Checkpoint 5: Chatbot Setup
 
 - [x] Add the initial `chatbot` schema with capability-specific Provider
       references:
@@ -835,11 +839,11 @@ Chatbot API and dashboard work are intentionally deferred to Day 5.
   - [x] `pnpm typecheck`
   - [x] Chatbot API, authorization, capability, and tenant-isolation tests.
 
-Day 7 supersedes the initial embedding ownership above: Embedding Providers now
-belong to reusable Knowledge Bases, and Chatbots reference a Knowledge Base
-instead of storing `embedding_provider_id`.
+Checkpoint 7 supersedes the initial embedding ownership above: Embedding
+Providers now belong to reusable Knowledge Bases, and Chatbots reference a
+Knowledge Base instead of storing `embedding_provider_id`.
 
-### Day 6: Embed Keys and Domain Allowlist
+### Checkpoint 6: Embed Keys and Domain Allowlist
 
 - [x] Add the `embed_key` schema with direct Organization and Chatbot
       ownership.
@@ -882,7 +886,7 @@ instead of storing `embedding_provider_id`.
   - [x] `pnpm typecheck`
   - [ ] Relevant embed key and tenant-isolation tests.
 
-### Day 7: Reusable Knowledge Base Foundation
+### Checkpoint 7: Reusable Knowledge Base Foundation
 
 - [x] Add the Organization-owned `knowledge_base` schema.
 - [x] Give each Knowledge Base one required embedding Provider.
@@ -930,71 +934,100 @@ instead of storing `embedding_provider_id`.
   - [ ] Knowledge Base API authorization and tenant-isolation integration
         tests.
 
-### Day 8: Thin End-to-End Text RAG Slice
+### Checkpoint 8: Text Knowledge Source Ingestion
 
-- [ ] Add the minimal schemas for:
+- [x] Add schemas for:
   - [x] `knowledge_source`
   - [x] `knowledge_chunk`
-  - [ ] `chat_session`
-  - [ ] `chat_message`
-  - [ ] `rag_trace`
 - [x] Add a Knowledge Base-scoped text source API and Dashboard form.
 - [x] Support `text` sources.
 - [x] Implement deterministic chunking in `packages/rag`.
 - [x] Generate Source embeddings through the Knowledge Base's configured
       embedding Provider.
-- [x] Store each Chunk's content and required vector embedding together in
+- [x] Store each Chunk's content and vector embedding together in
       `knowledge_chunk`.
 - [x] Validate the complete embedding batch before writing Knowledge Chunks.
 - [x] Mark Sources as `ready` or `failed`; failed ingestion must not leave
       retrievable partial chunks.
-- [x] Resolve a Chatbot's Knowledge Base and embed visitor questions with the
-      Knowledge Base's configured embedding Provider and model.
-- [x] Retrieve top chunks only from the selected Knowledge Base.
-- [x] Map retrieved chunks back to Sources.
-- [x] Assemble the prompt in `packages/rag`.
-- [ ] Include Source titles and citation markers in the prompt context.
-- [ ] Call the Chatbot's chat Provider and save visitor and assistant messages.
-- [ ] Save a minimal RAG Trace in the same request lifecycle.
-- [ ] Add an authenticated Dashboard test action that returns:
-  - [ ] `answer`
-  - [ ] `citations`
-  - [ ] `traceId`
-- [ ] Show indexed chunks and the resulting Trace in the Dashboard.
-- [ ] Acceptance:
-  - [ ] An owner can add text to a Knowledge Base, index it, ask a question
-        through a Chatbot, and receive a cited answer.
-  - [ ] Multiple Chatbots reuse the same Knowledge Base vectors.
-  - [ ] The answer, retrieved chunks, and Trace belong to the same Organization
-        and Knowledge Base.
-  - [ ] Failed ingestion exposes an actionable error.
-- [ ] Run:
-  - [ ] `pnpm check`
-  - [ ] `pnpm typecheck`
-  - [ ] RAG tests with deterministic Provider and embedding adapters.
+- [x] Show pending, processing, ready, and failed states in the dashboard.
+- [x] Acceptance:
+  - [x] An owner can add text to a Knowledge Base and see it indexed.
+  - [x] Failed ingestion exposes an actionable error.
+- [x] Run:
+  - [x] `pnpm --filter @heho/api typecheck`
+  - [x] `pnpm --filter @heho/api build`
+  - [x] `pnpm --filter @heho/dashboard typecheck`
+  - [x] `pnpm --filter @heho/dashboard build`
 
-### Day 9: Background Ingestion and URL Adapter
+### Checkpoint 9: Dashboard Retrieval Preview
 
-- [ ] Add BullMQ ingestion queue and worker processing.
-- [ ] Move text ingestion behind the queue without changing its observable result.
-- [ ] Add the URL knowledge source adapter:
-  - [ ] Fetch URL content server-side.
-  - [ ] Strip scripts, styles, and obvious navigation noise.
-  - [ ] Extract title and readable body text.
-  - [ ] Reuse the Day 8 ingestion pipeline.
-- [ ] Show queued, processing, ready, and failed states in the dashboard.
-- [ ] Make ingestion jobs idempotent and safe to retry.
-- [ ] Acceptance:
-  - [ ] Text and URL sources reach `ready` through the worker.
-  - [ ] Retrying a job does not create duplicate chunks.
-  - [ ] URL ingestion errors are visible in the dashboard.
-- [ ] Run:
-  - [ ] `pnpm check`
-  - [ ] `pnpm typecheck`
-  - [ ] Relevant queue, retry, text, and URL ingestion tests.
+- [x] Add a reusable retrieval module that:
+  - [x] Embeds the query with the Knowledge Base's embedding Provider.
+  - [x] Searches `knowledge_chunk` through pgvector.
+  - [x] Restricts retrieval to the selected Organization and Knowledge Base.
+  - [x] Returns chunk content, Source title, chunk index, and similarity.
+- [x] Add authenticated Dashboard API:
+  - [x] `POST /knowledge-bases/:knowledgeBaseId/retrieval-preview`
+- [x] Add Dashboard retrieval preview form on a Knowledge Base detail page.
+- [x] Show retrieval preview only when at least one Source is `ready`.
+- [x] Acceptance:
+  - [x] A Dashboard user can ask a retrieval query and inspect returned chunks.
+  - [x] Retrieval never crosses Organization or Knowledge Base boundaries.
+- [x] Run:
+  - [x] `pnpm --filter @heho/api typecheck`
+  - [x] `pnpm --filter @heho/api build`
+  - [x] `pnpm --filter @heho/dashboard typecheck`
+  - [x] `pnpm --filter @heho/dashboard build`
 
-### Day 10: Public Chat API with Trace
+### Checkpoint 10: Dashboard Chatbot Ask Preview
 
+- [x] Add `rag_trace` schema for Dashboard RAG preview traces.
+- [x] Assemble the RAG prompt with retrieved chunk IDs, Source titles, chunk
+      indexes, scores, and content.
+- [x] Call the Chatbot's chat Provider with structured output:
+  - [x] `answer`
+  - [x] `citedChunkIds`
+- [x] Filter citations server-side so only actually retrieved chunks can be
+      cited.
+- [x] Save `rag_trace` in the same request lifecycle:
+  - [x] `question`
+  - [x] `answer`
+  - [x] `promptPreview`
+  - [x] `model`
+  - [x] `latencyMs`
+  - [x] `retrievedChunks`
+  - [x] `citations`
+- [x] Add authenticated Dashboard API:
+  - [x] `POST /chatbots/:chatbotId/ask-preview`
+- [x] Add Dashboard Chatbot Test dialog that returns:
+  - [x] `answer`
+  - [x] `citations`
+  - [x] `traceId`
+- [x] Acceptance:
+  - [x] A Dashboard user can ask a single-turn question through a Chatbot and
+        receive a cited answer.
+  - [x] Multiple Chatbots can reuse the same Knowledge Base vectors.
+  - [x] The answer, retrieved chunks, and trace belong to the same Organization,
+        Chatbot, and Knowledge Base.
+- [x] Run:
+  - [x] `pnpm --filter @heho/api typecheck`
+  - [x] `pnpm --filter @heho/api build`
+  - [x] `pnpm --filter @heho/dashboard typecheck`
+  - [x] `pnpm --filter @heho/dashboard build`
+
+### Next: Schema Rollout
+
+- [ ] Decide and document the DB schema rollout path for shared environments:
+  - [ ] Generate and commit Drizzle migrations, or
+  - [ ] Use an explicit `drizzle-kit push` workflow for the current local MVP.
+- [ ] Apply the `rag_trace` schema before testing ask-preview against a fresh
+      database.
+
+### Next: Public Chat API with Trace
+
+- [ ] Add schemas for:
+  - [ ] `chat_session`
+  - [ ] `chat_message`
 - [ ] Implement:
   - [ ] `GET /widget/config?key=pk_xxx`
   - [ ] `POST /widget/sessions`
@@ -1002,17 +1035,10 @@ instead of storing `embedding_provider_id`.
 - [ ] Validate the embed key hash.
 - [ ] Validate the request origin against the domain allowlist.
 - [ ] Add basic rate limiting for public widget requests.
-- [ ] Create or reuse chat sessions.
-- [ ] Reuse the Day 8 RAG module for every visitor message.
-- [ ] Store the complete MVP RAG trace:
-  - [ ] Visitor question
-  - [ ] Retrieved chunks
-  - [ ] Retrieval scores
-  - [ ] Prompt preview
-  - [ ] Model name
-  - [ ] Token usage when available
-  - [ ] Latency
-  - [ ] Citations
+- [ ] Reuse the Dashboard ask-preview RAG path for visitor messages.
+- [ ] Store visitor and assistant messages.
+- [ ] Store public-chat `rag_trace` records linked to the session/message once
+      those schemas exist.
 - [ ] Return:
   - [ ] `answer`
   - [ ] `citations`
@@ -1021,12 +1047,8 @@ instead of storing `embedding_provider_id`.
   - [ ] A valid key and allowed origin receive a cited answer.
   - [ ] Invalid keys, blocked origins, and rate-limit violations are rejected.
   - [ ] No public request can read data from another organization.
-- [ ] Run:
-  - [ ] `pnpm check`
-  - [ ] `pnpm typecheck`
-  - [ ] Public chat, domain allowlist, rate-limit, and tenant-isolation tests.
 
-### Day 11: Minimal Website Widget
+### Next: Minimal Website Widget
 
 - [ ] Build the first runnable `packages/widget` slice:
   - [ ] Vanilla JavaScript build.
@@ -1039,7 +1061,7 @@ instead of storing `embedding_provider_id`.
   - [ ] Citations list
   - [ ] Error state
 - [ ] Load chatbot configuration through the public embed key.
-- [ ] Connect the widget to the Day 10 public chat API.
+- [ ] Connect the widget to the public chat API.
 - [ ] Add local embed snippet support:
 
   ```html
@@ -1059,7 +1081,7 @@ instead of storing `embedding_provider_id`.
   - [ ] `pnpm build`
   - [ ] Widget integration test against the public API.
 
-### Day 12: Dashboard Observability
+### Next: Dashboard Observability
 
 - [ ] Add chat logs page.
 - [ ] Add RAG trace detail page.
@@ -1079,7 +1101,7 @@ instead of storing `embedding_provider_id`.
   - [ ] `pnpm typecheck`
   - [ ] Relevant trace, usage, and tenant-isolation tests.
 
-### Day 13: Product Completion Pass
+### Next: Product Completion Pass
 
 - [ ] Add widget welcome message and basic theme variables.
 - [ ] Add dashboard empty states and actionable error states.
@@ -1101,7 +1123,7 @@ instead of storing `embedding_provider_id`.
   - [ ] `pnpm typecheck`
   - [ ] `pnpm build`
 
-### Day 14: Demo and Self-Host Documentation
+### Next: Demo and Self-Host Documentation
 
 - [ ] Add demo assets:
   - [ ] Demo HTML page with widget installed
@@ -1124,7 +1146,7 @@ instead of storing `embedding_provider_id`.
   - [ ] `pnpm typecheck`
   - [ ] `pnpm build`
 
-### Day 15: End-to-End Hardening
+### Next: End-to-End Hardening
 
 - [ ] Run acceptance test:
   - [ ] Admin signs in
