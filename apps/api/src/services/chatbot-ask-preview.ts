@@ -206,6 +206,8 @@ export const askChatbotPreview = async ({
     id: traceId,
     organizationId,
     chatbotId,
+    origin: "preview",
+    messageId: null,
     knowledgeBaseId: matchedChatbot.chatbot.knowledgeBaseId,
     modelId: matchedChatbot.chatProvider.modelId,
     question: input.question,

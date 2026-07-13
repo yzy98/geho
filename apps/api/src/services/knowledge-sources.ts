@@ -116,7 +116,7 @@ const getSourceDtos = async ({
       knowledgeSource.createdAt,
       knowledgeSource.updatedAt
     )
-    .orderBy(desc(knowledgeSource.createdAt));
+    .orderBy(desc(knowledgeSource.createdAt), desc(knowledgeSource.id));
 
   return rows;
 };
