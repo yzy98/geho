@@ -1,7 +1,14 @@
-import { generateText, Output } from "ai";
+import { generateText, type ModelMessage, Output } from "ai";
 import z from "zod";
 import type { ResolvedChatModel } from "./chat-models";
 import type { RagChunk } from "./retrieval";
+
+export const MAX_RAG_HISTORY_MESSAGES = 20;
+
+export type RagHistoryMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
 
 const buildRagContext = (chunks: RagChunk[]) => {
   if (chunks.length === 0) {
@@ -45,6 +52,49 @@ ${buildRagContext(chunks)}
 
 Answer:`;
 
+const buildRagMessages = ({
+  history,
+  prompt,
+}: {
+  history: RagHistoryMessage[];
+  prompt: string;
+}): ModelMessage[] => [
+  ...history.slice(-MAX_RAG_HISTORY_MESSAGES).map(
+    (message): ModelMessage => ({
+      role: message.role,
+      content: message.content,
+    })
+  ),
+  {
+    role: "user",
+    content: prompt,
+  },
+];
+
+const buildPromptPreview = ({
+  history,
+  prompt,
+}: {
+  history: RagHistoryMessage[];
+  prompt: string;
+}) => {
+  const boundedHistory = history.slice(-MAX_RAG_HISTORY_MESSAGES);
+
+  if (boundedHistory.length === 0) {
+    return prompt;
+  }
+
+  const historyPreview = boundedHistory
+    .map((message) => `${message.role.toUpperCase()}:\n${message.content}`)
+    .join("\n\n");
+
+  return `Conversation history:
+  ${historyPreview}
+
+  CURRENT USER REQUEST:
+  ${prompt}`;
+};
+
 const ragAnswerSchema = z
   .object({
     answer: z.string().min(1),
@@ -58,17 +108,19 @@ type GenerateRagAnswer = (options: {
   model: ResolvedChatModel;
   instructions: string;
   question: string;
+  history: RagHistoryMessage[];
   chunks: RagChunk[];
   abortSignal?: AbortSignal;
 }) => Promise<{
   answer: RagAnswer;
-  prompt: string;
+  promptPreview: string;
 }>;
 
 export const generateRagAnswer: GenerateRagAnswer = async ({
   model,
   instructions,
   question,
+  history,
   chunks,
   abortSignal,
 }) => {
@@ -77,10 +129,24 @@ export const generateRagAnswer: GenerateRagAnswer = async ({
     chunks,
   });
 
+  const boundedHistory = history.slice(-MAX_RAG_HISTORY_MESSAGES);
+
+  const promptInput =
+    boundedHistory.length === 0
+      ? {
+          prompt,
+        }
+      : {
+          messages: buildRagMessages({
+            history: boundedHistory,
+            prompt,
+          }),
+        };
+
   const result = await generateText({
     model: model.model,
     instructions,
-    prompt,
+    ...promptInput,
     output: Output.object({
       schema: ragAnswerSchema,
       name: "citedAnswer",
@@ -92,6 +158,9 @@ export const generateRagAnswer: GenerateRagAnswer = async ({
 
   return {
     answer: result.output,
-    prompt,
+    promptPreview: buildPromptPreview({
+      history: boundedHistory,
+      prompt,
+    }),
   };
 };
