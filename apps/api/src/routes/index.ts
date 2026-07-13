@@ -4,6 +4,7 @@ import { createKnowledgeBaseRoutes } from "./knowledge-bases";
 import { createModelProviderRoutes } from "./model-providers";
 import { createOrganizationRoutes } from "./organizations";
 import type { RouteDependencies } from "./types";
+import { createWidgetRoutes } from "./widget";
 
 export const createApiRoutes = ({
   auth,
@@ -30,4 +31,5 @@ export const createApiRoutes = ({
         startKnowledgeSourceIngestion,
       })
     )
-    .route("/chatbots", createChatbotRoutes({ auth, db, encryptionKey }));
+    .route("/chatbots", createChatbotRoutes({ auth, db, encryptionKey }))
+    .route("/widget", createWidgetRoutes({ db }));

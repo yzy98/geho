@@ -63,7 +63,6 @@ const getChatbotForRagAnswer = async ({
         systemInstructions: chatbot.systemInstructions,
       },
       chatProvider: {
-        id: modelProvider.id,
         provider: modelProvider.provider,
         modelId: modelProvider.modelId,
         baseUrl: modelProvider.baseUrl,

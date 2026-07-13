@@ -89,10 +89,10 @@ const buildPromptPreview = ({
     .join("\n\n");
 
   return `Conversation history:
-  ${historyPreview}
+${historyPreview}
 
-  CURRENT USER REQUEST:
-  ${prompt}`;
+CURRENT USER REQUEST:
+${prompt}`;
 };
 
 const ragAnswerSchema = z
