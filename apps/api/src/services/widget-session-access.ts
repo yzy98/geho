@@ -4,7 +4,15 @@ import { chatSession } from "@heho/db/schema";
 import { hashSessionToken, isSessionToken } from "../lib/session-token";
 import type { WidgetScope } from "./widget-access";
 
-const WIDGET_SESSION_IDLE_MS = 24 * 60 * 60 * 1000; // 24h
+export const WIDGET_SESSION_IDLE_MS = 24 * 60 * 60 * 1000; // 24h
+
+export const isWidgetSessionExpired = ({
+  lastMessageAt,
+  now = new Date(),
+}: {
+  lastMessageAt: Date;
+  now?: Date;
+}) => lastMessageAt.getTime() <= now.getTime() - WIDGET_SESSION_IDLE_MS;
 
 export type AuthorizedWidgetSession = {
   id: string;
@@ -57,7 +65,6 @@ export const authorizeWidgetSession = async ({
 
   // Hash the raw session token
   const tokenHash = hashSessionToken(rawSessionToken);
-  const expiresBefore = new Date(Date.now() - WIDGET_SESSION_IDLE_MS);
 
   return await db.transaction(async (tx) => {
     // Find the chat session
@@ -90,7 +97,9 @@ export const authorizeWidgetSession = async ({
     }
 
     // Last message exceeds 24h before, treat it as Expired
-    const isExpired = session.lastMessageAt <= expiresBefore;
+    const isExpired = isWidgetSessionExpired({
+      lastMessageAt: session.lastMessageAt,
+    });
 
     // Update the expired session status to closed
     if (isExpired) {

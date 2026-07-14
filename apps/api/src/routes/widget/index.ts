@@ -1,12 +1,19 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { requireWidgetAccess } from "../../middleware/require-widget-access";
 import type { RouteDependencies } from "../types";
 import { createWidgetMessagesRoute } from "./messages";
 import { createWidgetSessionsRoute } from "./sessions";
 
-type CreateWidgetRoutesOptions = Pick<RouteDependencies, "db">;
+type CreateWidgetRoutesOptions = Pick<
+  RouteDependencies,
+  "db" | "encryptionKey"
+>;
 
-export const createWidgetRoutes = ({ db }: CreateWidgetRoutesOptions) =>
+export const createWidgetRoutes = ({
+  db,
+  encryptionKey,
+}: CreateWidgetRoutesOptions) =>
   new Hono()
     .use(
       "*",
@@ -18,5 +25,9 @@ export const createWidgetRoutes = ({ db }: CreateWidgetRoutesOptions) =>
         credentials: false,
       })
     )
+    .use("*", requireWidgetAccess(db))
     .route("/sessions", createWidgetSessionsRoute({ db }))
-    .route("/sessions/:sessionId/messages", createWidgetMessagesRoute({ db }));
+    .route(
+      "/sessions/:sessionId/messages",
+      createWidgetMessagesRoute({ db, encryptionKey })
+    );

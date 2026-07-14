@@ -32,4 +32,4 @@ export const createApiRoutes = ({
       })
     )
     .route("/chatbots", createChatbotRoutes({ auth, db, encryptionKey }))
-    .route("/widget", createWidgetRoutes({ db }));
+    .route("/widget", createWidgetRoutes({ db, encryptionKey }));
