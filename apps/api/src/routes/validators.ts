@@ -40,3 +40,24 @@ export const jsonValidator = <TSchema extends z.ZodType>({
       );
     }
   });
+
+export const headerValidator = <TSchema extends z.ZodType>({
+  schema,
+  code,
+  message,
+}: {
+  schema: TSchema;
+  code: string;
+  message: string;
+}) =>
+  zValidator("header", schema, (result, c) => {
+    if (!result.success) {
+      return c.json(
+        {
+          code,
+          message,
+        },
+        403
+      );
+    }
+  });

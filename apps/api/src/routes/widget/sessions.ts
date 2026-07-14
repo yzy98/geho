@@ -1,30 +1,25 @@
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { widgetAccessHeadersSchema } from "../../schemas/widget";
 import { resolveWidgetAccess } from "../../services/widget-access";
-import { createWidgetSession } from "../../services/widget-sessions";
+import { createWidgetSession } from "../../services/widget-session";
 import type { RouteDependencies } from "../types";
+import { headerValidator } from "../validators";
 
-type CreateWidgetSessionsOptions = Pick<RouteDependencies, "db">;
+type CreateWidgetSessionsRouteOptions = Pick<RouteDependencies, "db">;
 
 const invalidWidgetAccessResponse = {
   code: "INVALID_WIDGET_ACCESS",
   message: "Widget access was denied.",
 } as const;
 
-const widgetAccessHeadersValidator = zValidator(
-  "header",
-  widgetAccessHeadersSchema,
-  (result, c) => {
-    if (!result.success) {
-      return c.json(invalidWidgetAccessResponse, 403);
-    }
-  }
-);
+const widgetAccessHeadersValidator = headerValidator({
+  schema: widgetAccessHeadersSchema,
+  ...invalidWidgetAccessResponse,
+});
 
 export const createWidgetSessionsRoute = ({
   db,
-}: CreateWidgetSessionsOptions) =>
+}: CreateWidgetSessionsRouteOptions) =>
   new Hono().post("/", widgetAccessHeadersValidator, async (c) => {
     const { origin, rawEmbedKey } = c.req.valid("header");
 

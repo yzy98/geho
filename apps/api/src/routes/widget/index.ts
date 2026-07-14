@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { RouteDependencies } from "../types";
+import { createWidgetMessagesRoute } from "./messages";
 import { createWidgetSessionsRoute } from "./sessions";
 
 type CreateWidgetRoutesOptions = Pick<RouteDependencies, "db">;
@@ -17,4 +18,5 @@ export const createWidgetRoutes = ({ db }: CreateWidgetRoutesOptions) =>
         credentials: false,
       })
     )
-    .route("/sessions", createWidgetSessionsRoute({ db }));
+    .route("/sessions", createWidgetSessionsRoute({ db }))
+    .route("/sessions/:sessionId/messages", createWidgetMessagesRoute({ db }));

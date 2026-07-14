@@ -14,6 +14,9 @@ export type WidgetScope = {
   chatbotId: string;
 };
 
+/**
+ * Verify Embed Key and Origin, generate trustable Widget Scope
+ */
 export const resolveWidgetAccess = async ({
   db,
   rawEmbedKey,
