@@ -1,4 +1,4 @@
-import { generateText, type ModelMessage, Output } from "ai";
+import { generateText, type ModelMessage, Output, streamText } from "ai";
 import z from "zod";
 import type { ResolvedChatModel } from "./chat-models";
 import type { RagChunk } from "./retrieval";
@@ -158,6 +158,66 @@ export const generateRagAnswer: GenerateRagAnswer = async ({
 
   return {
     answer: result.output,
+    promptPreview: buildPromptPreview({
+      history: boundedHistory,
+      prompt,
+    }),
+  };
+};
+
+type StreamRagAnswerOptions = {
+  model: ResolvedChatModel;
+  instructions: string;
+  question: string;
+  history: RagHistoryMessage[];
+  chunks: RagChunk[];
+  abortSignal?: AbortSignal;
+};
+
+export const streamRagAnswer = ({
+  model,
+  instructions,
+  question,
+  history,
+  chunks,
+  abortSignal,
+}: StreamRagAnswerOptions) => {
+  // Build prompt from user message and retrieved chunks
+  const prompt = buildRagPrompt({
+    question,
+    chunks,
+  });
+
+  const boundedHistory = history.slice(-MAX_RAG_HISTORY_MESSAGES);
+
+  // If no history messages, provide prompt; Else, provide messages
+  const promptInput =
+    boundedHistory.length === 0
+      ? {
+          prompt,
+        }
+      : {
+          messages: buildRagMessages({
+            history: boundedHistory,
+            prompt,
+          }),
+        };
+
+  const result = streamText({
+    model: model.model,
+    instructions,
+    ...promptInput,
+    output: Output.object({
+      schema: ragAnswerSchema,
+      name: "citedAnswer",
+      description: "An answer with citations to retrieved chunk IDs.",
+    }),
+    temperature: 0,
+    ...(abortSignal ? { abortSignal } : {}),
+  });
+
+  return {
+    result,
     promptPreview: buildPromptPreview({
       history: boundedHistory,
       prompt,

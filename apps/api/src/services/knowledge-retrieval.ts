@@ -13,6 +13,7 @@ export type RetrieveKnowledgeChunksOptions = {
   organizationId: string;
   knowledgeBaseId: string;
   input: RetrievalPreviewInput;
+  abortSignal?: AbortSignal;
 };
 
 export type RetrieveKnowledgeChunksResult =
@@ -73,6 +74,7 @@ export const retrieveKnowledgeChunks = async ({
   organizationId,
   knowledgeBaseId,
   input,
+  abortSignal,
 }: RetrieveKnowledgeChunksOptions): Promise<RetrieveKnowledgeChunksResult> => {
   const { query, limit, minSimilarity } = input;
 
@@ -110,6 +112,7 @@ export const retrieveKnowledgeChunks = async ({
     queryEmbedding = await generateEmbedding({
       model,
       value: query,
+      ...(abortSignal ? { abortSignal } : {}),
     });
   } catch {
     return {

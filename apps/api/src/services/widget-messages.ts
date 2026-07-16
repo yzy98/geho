@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/complexity/noExcessiveCognitiveComplexity: ignore */
 import { randomUUID } from "node:crypto";
 import type { DbClient } from "@heho/db";
-import { and, asc, desc, eq, sql } from "@heho/db/helper";
+import { and, asc, desc, eq } from "@heho/db/helper";
 import {
   chatMessage,
   chatSession,
@@ -9,12 +9,8 @@ import {
   ragTrace,
 } from "@heho/db/schema";
 import { MAX_RAG_HISTORY_MESSAGES, type RagHistoryMessage } from "../lib/rag";
-import type { CreateWidgetMessageInput } from "../schemas/widget";
-import { generateChatbotRagAnswer } from "./chatbot-rag-answer";
-import {
-  type AuthorizedWidgetSession,
-  isWidgetSessionExpired,
-} from "./widget-session-access";
+import type { CompletedChatbotRagAnswer } from "./chatbot-rag-answer";
+import type { AuthorizedWidgetSession } from "./widget-session-access";
 
 type WidgetMessageBase = {
   id: string;
@@ -22,15 +18,20 @@ type WidgetMessageBase = {
   createdAt: string;
 };
 
-export type WidgetMessage =
-  | (WidgetMessageBase & {
-      role: "user";
-    })
-  | (WidgetMessageBase & {
-      role: "assistant";
-      citations: RagTraceCitation[];
-    });
+export type WidgetUserMessage = WidgetMessageBase & {
+  role: "user";
+};
 
+export type WidgetAssistantMessage = WidgetMessageBase & {
+  role: "assistant";
+  citations: RagTraceCitation[];
+};
+
+export type WidgetMessage = WidgetUserMessage | WidgetAssistantMessage;
+
+/**
+ * Get Session messages
+ */
 export type ListWidgetMessagesOptions = {
   db: DbClient;
   session: AuthorizedWidgetSession;
@@ -96,26 +97,6 @@ export const listWidgetMessages = async ({
   };
 };
 
-export type CreateWidgetMessageOptions = {
-  db: DbClient;
-  encryptionKey: Uint8Array;
-  session: AuthorizedWidgetSession;
-  input: CreateWidgetMessageInput;
-};
-
-export type CreateWidgetMessageResult =
-  | {
-      status: "answered";
-      replayed: boolean;
-      userMessageId: string;
-      assistantMessage: WidgetMessage;
-      traceId: string;
-    }
-  | { status: "invalid_access" }
-  | { status: "session_expired" }
-  | { status: "message_id_conflict" }
-  | { status: "chat_generation_failed" };
-
 const sessionSelection = {
   id: chatSession.id,
   organizationId: chatSession.organizationId,
@@ -124,282 +105,291 @@ const sessionSelection = {
   lastMessageAt: chatSession.lastMessageAt,
 };
 
-export const createWidgetMessage = async ({
-  db,
-  encryptionKey,
-  session,
-  input,
-}: CreateWidgetMessageOptions): Promise<CreateWidgetMessageResult> =>
-  db.transaction(async (tx): Promise<CreateWidgetMessageResult> => {
-    // Find the Chat Session and lock for update
-    const sessionRows = await tx
-      .select(sessionSelection)
-      .from(chatSession)
-      .where(
-        and(
-          eq(chatSession.id, session.id),
-          eq(chatSession.organizationId, session.organizationId),
-          eq(chatSession.chatbotId, session.chatbotId)
-        )
-      )
-      .limit(1)
-      .for("update");
+export type PreparedWidgetMessage = {
+  userMessageId: string;
+  organizationId: string;
+  sessionId: string;
+  chatbotId: string;
+  question: string;
+  history: RagHistoryMessage[];
+};
 
-    const lockedSession = sessionRows[0];
+export type PrepareWidgetResumeOptions = {
+  db: DbClient;
+  session: AuthorizedWidgetSession;
+};
 
-    if (!lockedSession) {
-      return {
-        status: "invalid_access",
-      };
+export type PrepareWidgetResumeResult =
+  | {
+      status: "prepared";
+      prepared: PreparedWidgetMessage;
     }
-
-    if (lockedSession.status === "closed") {
-      return {
-        status: "session_expired",
-      };
-    }
-
-    if (
-      isWidgetSessionExpired({
-        lastMessageAt: lockedSession.lastMessageAt,
-      })
-    ) {
-      await tx
-        .update(chatSession)
-        .set({
-          status: "closed",
-        })
-        .where(
-          and(
-            eq(chatSession.id, lockedSession.id),
-            eq(chatSession.organizationId, lockedSession.organizationId),
-            eq(chatSession.chatbotId, lockedSession.chatbotId),
-            eq(chatSession.status, "active")
-          )
-        );
-
-      return {
-        status: "session_expired",
-      };
-    }
-
-    // Find the existing user message according to client message ID
-    const existingUserMessageRows = await tx
-      .select({
-        id: chatMessage.id,
-        content: chatMessage.content,
-        createdAt: chatMessage.createdAt,
-      })
-      .from(chatMessage)
-      .where(
-        and(
-          eq(chatMessage.organizationId, lockedSession.organizationId),
-          eq(chatMessage.sessionId, lockedSession.id),
-          eq(chatMessage.clientMessageId, input.clientMessageId),
-          eq(chatMessage.role, "user")
-        )
-      )
-      .limit(1);
-
-    const existingUserMessage = existingUserMessageRows[0];
-
-    // Same client message ID not allow different content
-    if (existingUserMessage && existingUserMessage.content !== input.content) {
-      return {
-        status: "message_id_conflict",
-      };
-    }
-
-    // User message not exists, insert; Or re-use
-    const userMessage = existingUserMessage ?? {
-      id: randomUUID(),
-      content: input.content,
-      createdAt: new Date(),
+  | {
+      status: "no_unanswered_message";
     };
 
-    // Insert into Chat Message
-    if (!existingUserMessage) {
-      await tx.insert(chatMessage).values({
-        id: userMessage.id,
-        organizationId: lockedSession.organizationId,
-        sessionId: lockedSession.id,
-        clientMessageId: input.clientMessageId,
-        replyToMessageId: null,
-        role: "user",
-        content: userMessage.content,
-        createdAt: userMessage.createdAt,
-      });
-    }
-
-    // Check if the User Message already has completed answer
-    const completedAnswerRows = await tx
-      .select({
-        assistantMessageId: chatMessage.id,
-        answer: chatMessage.content,
-        assistantCreatedAt: chatMessage.createdAt,
-        traceId: ragTrace.id,
-        citations: ragTrace.citations,
-      })
-      .from(chatMessage)
-      .leftJoin(
-        ragTrace,
-        and(
-          eq(ragTrace.organizationId, chatMessage.organizationId),
-          eq(ragTrace.messageId, chatMessage.id),
-          eq(ragTrace.origin, "widget")
-        )
-      )
-      .where(
-        and(
-          eq(chatMessage.organizationId, lockedSession.organizationId),
-          eq(chatMessage.sessionId, lockedSession.id),
-          eq(chatMessage.role, "assistant"),
-          eq(chatMessage.replyToMessageId, userMessage.id)
-        )
-      )
-      .limit(1);
-
-    const completedAnswer = completedAnswerRows[0];
-
-    // The assisant answer message exists
-    if (completedAnswer) {
-      if (
-        completedAnswer.traceId === null ||
-        completedAnswer.citations === null
-      ) {
-        throw new Error("Widget assistant is missing its RAG trace");
-      }
-
-      return {
-        status: "answered",
-        replayed: true,
-        userMessageId: userMessage.id,
-        assistantMessage: {
-          id: completedAnswer.assistantMessageId,
-          role: "assistant",
-          content: completedAnswer.answer,
-          citations: completedAnswer.citations,
-          createdAt: completedAnswer.assistantCreatedAt.toISOString(),
-        },
-        traceId: completedAnswer.traceId,
-      };
-    }
-
-    // The assistant answer message not exist
-    // Load 20 messages before current user message
+/**
+ * Prepare Widget resume, find the trailing unanswered user message
+ */
+export const prepareWidgetResume = async ({
+  db,
+  session,
+}: PrepareWidgetResumeOptions): Promise<PrepareWidgetResumeResult> =>
+  db.transaction(async (tx): Promise<PrepareWidgetResumeResult> => {
+    // Read the lastest bounded history before inserting the user message
     const historyRows = await tx
       .select({
+        id: chatMessage.id,
         role: chatMessage.role,
         content: chatMessage.content,
       })
       .from(chatMessage)
       .where(
         and(
-          eq(chatMessage.organizationId, lockedSession.organizationId),
-          eq(chatMessage.sessionId, lockedSession.id),
-          sql`
-            (
-              ${chatMessage.createdAt},
-              ${chatMessage.id}
-            )
-            <
-            (
-              ${userMessage.createdAt},
-              ${userMessage.id}
-            )
-          `
+          eq(chatMessage.organizationId, session.organizationId),
+          eq(chatMessage.sessionId, session.id)
         )
       )
       .orderBy(desc(chatMessage.createdAt), desc(chatMessage.id))
-      .limit(MAX_RAG_HISTORY_MESSAGES);
+      .limit(MAX_RAG_HISTORY_MESSAGES + 1);
 
+    const trailingMessage = historyRows[0];
+
+    if (trailingMessage?.role !== "user") {
+      return {
+        status: "no_unanswered_message",
+      };
+    }
+
+    // Reverse the history rows except the unanswered user message
     const history: RagHistoryMessage[] = historyRows
+      .slice(1)
       .reverse()
       .map((message) => ({
         role: message.role,
         content: message.content,
       }));
 
-    // Generate shared RAG answer
-    let generated: Awaited<ReturnType<typeof generateChatbotRagAnswer>>;
-
-    try {
-      generated = await generateChatbotRagAnswer({
-        db,
-        encryptionKey,
-        organizationId: lockedSession.organizationId,
-        chatbotId: lockedSession.chatbotId,
-        question: userMessage.content,
+    return {
+      status: "prepared",
+      prepared: {
+        userMessageId: trailingMessage.id,
+        sessionId: session.id,
+        chatbotId: session.chatbotId,
+        organizationId: session.organizationId,
+        question: trailingMessage.content,
         history,
-      });
-    } catch {
+      },
+    };
+  });
+
+export type PrepareWidgetMessageOptions = {
+  db: DbClient;
+  session: AuthorizedWidgetSession;
+  content: string;
+};
+
+export type PrepareWidgetMessageResult =
+  | {
+      status: "prepared";
+      prepared: PreparedWidgetMessage;
+    }
+  | {
+      status: "unanswered_message_exists";
+      userMessageId: string;
+    };
+
+export const prepareWidgetMessage = async ({
+  db,
+  session,
+  content,
+}: PrepareWidgetMessageOptions): Promise<PrepareWidgetMessageResult> =>
+  db.transaction(async (tx): Promise<PrepareWidgetMessageResult> => {
+    // Read the lastest bounded history before inserting the user message
+    const historyRows = await tx
+      .select({
+        id: chatMessage.id,
+        role: chatMessage.role,
+        content: chatMessage.content,
+      })
+      .from(chatMessage)
+      .where(
+        and(
+          eq(chatMessage.organizationId, session.organizationId),
+          eq(chatMessage.sessionId, session.id)
+        )
+      )
+      .orderBy(desc(chatMessage.createdAt), desc(chatMessage.id))
+      .limit(MAX_RAG_HISTORY_MESSAGES);
+
+    const trailingMessage = historyRows[0];
+
+    if (trailingMessage?.role === "user") {
       return {
-        status: "chat_generation_failed",
+        status: "unanswered_message_exists",
+        userMessageId: trailingMessage.id,
       };
     }
 
-    if (generated.status !== "answered") {
+    // Query returned newest-first; the RAG prompt expects chronological ordering
+    const history: RagHistoryMessage[] = historyRows
+      .slice()
+      .reverse()
+      .map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
+
+    const userMessageId = randomUUID();
+    const createdAt = new Date();
+
+    await tx.insert(chatMessage).values({
+      id: userMessageId,
+      sessionId: session.id,
+      organizationId: session.organizationId,
+      role: "user",
+      content,
+      createdAt,
+    });
+
+    return {
+      status: "prepared",
+      prepared: {
+        userMessageId,
+        sessionId: session.id,
+        chatbotId: session.chatbotId,
+        organizationId: session.organizationId,
+        question: content,
+        history,
+      },
+    };
+  });
+
+export type FinalizeWidgetAnswerOptions = {
+  db: DbClient;
+  assistantMessageId: string;
+  prepared: PreparedWidgetMessage;
+  completed: CompletedChatbotRagAnswer;
+};
+
+export type FinalizeWidgetAnswerResult =
+  | {
+      status: "finalized";
+      assistantMessage: WidgetAssistantMessage;
+      traceId: string;
+    }
+  | {
+      status: "session_unavailable";
+    }
+  | {
+      status: "stale_preparation";
+    };
+
+export const finalizeWidgetAnswer = ({
+  db,
+  assistantMessageId,
+  prepared,
+  completed,
+}: FinalizeWidgetAnswerOptions): Promise<FinalizeWidgetAnswerResult> =>
+  db.transaction(async (tx): Promise<FinalizeWidgetAnswerResult> => {
+    // Serialize finalize against operations for this session
+    const [lockedSession] = await tx
+      .select(sessionSelection)
+      .from(chatSession)
+      .where(
+        and(
+          eq(chatSession.id, prepared.sessionId),
+          eq(chatSession.organizationId, prepared.organizationId),
+          eq(chatSession.chatbotId, prepared.chatbotId)
+        )
+      )
+      .limit(1)
+      .for("update");
+
+    if (lockedSession?.status !== "active") {
       return {
-        status: "chat_generation_failed",
+        status: "session_unavailable",
       };
     }
 
-    // Save assistant message, Widget RAG Trace and time
-    const assistantMessageId = randomUUID();
+    // The prepared user message must be the trailing message
+    const [trailingMessage] = await tx
+      .select({
+        id: chatMessage.id,
+        role: chatMessage.role,
+      })
+      .from(chatMessage)
+      .where(
+        and(
+          eq(chatMessage.organizationId, prepared.organizationId),
+          eq(chatMessage.sessionId, prepared.sessionId)
+        )
+      )
+      .orderBy(desc(chatMessage.createdAt), desc(chatMessage.id))
+      .limit(1);
+
+    if (
+      trailingMessage?.role !== "user" ||
+      trailingMessage?.id !== prepared.userMessageId
+    ) {
+      return {
+        status: "stale_preparation",
+      };
+    }
+
     const traceId = randomUUID();
     const completedAt = new Date();
 
-    // Insert assisant message into Chat Message
+    // Insert assistant message
     await tx.insert(chatMessage).values({
       id: assistantMessageId,
-      organizationId: lockedSession.organizationId,
-      sessionId: lockedSession.id,
-      clientMessageId: null,
-      replyToMessageId: userMessage.id,
+      sessionId: prepared.sessionId,
+      organizationId: prepared.organizationId,
       role: "assistant",
-      content: generated.answer,
+      content: completed.answer,
       createdAt: completedAt,
     });
 
-    // Insert into RAG Trace
+    // Insert message refrenced rag trace
     await tx.insert(ragTrace).values({
       id: traceId,
-      organizationId: lockedSession.organizationId,
-      chatbotId: lockedSession.chatbotId,
-      knowledgeBaseId: generated.knowledgeBaseId,
+      organizationId: prepared.organizationId,
+      chatbotId: prepared.chatbotId,
+      knowledgeBaseId: completed.knowledgeBaseId,
       messageId: assistantMessageId,
       origin: "widget",
-      question: userMessage.content,
-      answer: generated.answer,
-      promptPreview: generated.promptPreview,
-      modelId: generated.modelId,
-      latencyMs: generated.latencyMs,
-      retrievedChunks: generated.retrievedChunks,
-      citations: generated.citations,
+      question: prepared.question,
+      answer: completed.answer,
+      promptPreview: completed.promptPreview,
+      modelId: completed.modelId,
+      citations: completed.citations,
+      retrievedChunks: completed.retrievedChunks,
+      latencyMs: completed.latencyMs,
       createdAt: completedAt,
     });
 
-    // Update the Chat Session last message at
+    // Update the chat session last message at time
     await tx
       .update(chatSession)
-      .set({ lastMessageAt: completedAt })
+      .set({
+        lastMessageAt: completedAt,
+      })
       .where(
         and(
-          eq(chatSession.id, lockedSession.id),
-          eq(chatSession.organizationId, lockedSession.organizationId),
+          eq(chatSession.id, prepared.sessionId),
+          eq(chatSession.organizationId, prepared.organizationId),
+          eq(chatSession.chatbotId, prepared.chatbotId),
           eq(chatSession.status, "active")
         )
       );
 
     return {
-      status: "answered",
-      replayed: false,
-      userMessageId: userMessage.id,
+      status: "finalized",
       assistantMessage: {
         id: assistantMessageId,
         role: "assistant",
-        content: generated.answer,
-        citations: generated.citations,
+        content: completed.answer,
+        citations: completed.citations,
         createdAt: completedAt.toISOString(),
       },
       traceId,

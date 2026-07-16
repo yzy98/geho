@@ -43,7 +43,6 @@ export const widgetSessionParamsSchema = z.object({
 
 export const createWidgetMessageSchema = z
   .object({
-    clientMessageId: z.uuid("Client message ID must be a valid UUID"),
     content: z.string().trim().min(1).max(2000),
   })
   .strict();

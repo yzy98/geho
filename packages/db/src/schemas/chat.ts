@@ -1,6 +1,4 @@
-import { sql } from "drizzle-orm";
 import {
-  check,
   foreignKey,
   index,
   pgEnum,
@@ -21,6 +19,10 @@ export const chatMessageRole = pgEnum("chat_message_role", [
   "user",
   "assistant",
 ]);
+
+export type ChatSessionStatus = (typeof chatSessionStatus.enumValues)[number];
+
+export type ChatMessageRole = (typeof chatMessageRole.enumValues)[number];
 
 export const chatSession = pgTable(
   "chat_session",
@@ -70,8 +72,6 @@ export const chatMessage = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     sessionId: text().notNull(),
-    clientMessageId: text(),
-    replyToMessageId: text(),
     role: chatMessageRole().notNull(),
     content: text().notNull(),
     createdAt: timestamp({ precision: 6, withTimezone: true }).notNull(),
@@ -82,15 +82,6 @@ export const chatMessage = pgTable(
       table.id,
       table.organizationId
     ),
-
-    // Prevent the Widget from inserting the same user message twice
-    unique("chat_message_session_client_id_unique").on(
-      table.sessionId,
-      table.clientMessageId
-    ),
-
-    // One successful assistant response per user message
-    unique("chat_message_reply_to_unique").on(table.replyToMessageId),
 
     // Supports session history queries and stable ordering
     index("chat_message_tenant_session_order_idx").on(
@@ -106,31 +97,5 @@ export const chatMessage = pgTable(
       foreignColumns: [chatSession.id, chatSession.organizationId],
       name: "chat_message_session_tenant_fk",
     }).onDelete("cascade"),
-
-    // The replied-to message must belong to the same organization
-    foreignKey({
-      columns: [table.replyToMessageId, table.organizationId],
-      foreignColumns: [table.id, table.organizationId],
-      name: "chat_message_reply_to_tenant_fk",
-    }).onDelete("cascade"),
-
-    // user: clientMessageId required, replyToMessageId forbidden
-    // assistant: clientMessageId forbidden, replyToMessageId required
-    check(
-      "chat_message_role_fields_check",
-      sql`
-        (
-          ${table.role} = 'user'
-          AND ${table.clientMessageId} IS NOT NULL
-          AND ${table.replyToMessageId} IS NULL
-        )
-        OR
-        (
-          ${table.role} = 'assistant'
-          AND ${table.clientMessageId} IS NULL
-          AND ${table.replyToMessageId} IS NOT NULL
-        )
-      `
-    ),
   ]
 );
