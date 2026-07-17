@@ -1,5 +1,6 @@
 export {
   and,
+  asc,
   cosineDistance,
   count,
   desc,

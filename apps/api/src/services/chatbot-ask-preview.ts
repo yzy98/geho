@@ -1,18 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { DbClient } from "@heho/db";
-import { and, eq } from "@heho/db/helper";
-import {
-  chatbot,
-  modelProvider,
-  type RagTraceCitation,
-  ragTrace,
-} from "@heho/db/schema";
-import { decryptApiKey } from "../lib/api-key-encryption";
-import { resolveChatModel } from "../lib/chat-models";
-import { generateRagAnswer } from "../lib/rag";
-import type { RagChunk } from "../lib/retrieval";
+import { type RagTraceCitation, ragTrace } from "@heho/db/schema";
 import type { AskChatbotPreviewInput } from "../schemas/ask-preview";
-import { retrieveKnowledgeChunks } from "./knowledge-retrieval";
+import { generateChatbotRagAnswer } from "./chatbot-rag-answer";
 
 export type AskChatbotPreviewOptions = {
   db: DbClient;
@@ -39,82 +29,6 @@ export type AskChatbotPreviewResult =
       status: "chat_provider_failed";
     };
 
-const getChatbotForAskPreview = async ({
-  db,
-  chatbotId,
-  organizationId,
-}: {
-  db: DbClient;
-  organizationId: string;
-  chatbotId: string;
-}) => {
-  const rows = await db
-    .select({
-      chatbot: {
-        id: chatbot.id,
-        knowledgeBaseId: chatbot.knowledgeBaseId,
-        systemInstructions: chatbot.systemInstructions,
-      },
-      chatProvider: {
-        id: modelProvider.id,
-        provider: modelProvider.provider,
-        modelId: modelProvider.modelId,
-        baseUrl: modelProvider.baseUrl,
-        encryptedApiKey: modelProvider.encryptedApiKey,
-      },
-    })
-    .from(chatbot)
-    .innerJoin(
-      modelProvider,
-      and(
-        eq(chatbot.organizationId, modelProvider.organizationId),
-        eq(chatbot.chatProviderId, modelProvider.id),
-        eq(modelProvider.capability, "chat")
-      )
-    )
-    .where(
-      and(eq(chatbot.organizationId, organizationId), eq(chatbot.id, chatbotId))
-    )
-    .limit(1);
-
-  return rows[0] ?? null;
-};
-
-const getCitations = ({
-  citedChunkIds,
-  chunks,
-}: {
-  citedChunkIds: string[];
-  chunks: RagChunk[];
-}): RagTraceCitation[] => {
-  const chunksById = new Map(chunks.map((chunk) => [chunk.chunkId, chunk]));
-  const seen = new Set<string>();
-
-  return citedChunkIds.flatMap((chunkId) => {
-    if (seen.has(chunkId)) {
-      return [];
-    }
-
-    const chunk = chunksById.get(chunkId);
-
-    if (!chunk) {
-      return [];
-    }
-
-    seen.add(chunkId);
-
-    return [
-      {
-        chunkId: chunk.chunkId,
-        sourceId: chunk.sourceId,
-        sourceTitle: chunk.sourceTitle,
-        chunkIndex: chunk.chunkIndex,
-        similarity: chunk.similarity,
-      },
-    ];
-  });
-};
-
 export const askChatbotPreview = async ({
   db,
   encryptionKey,
@@ -122,76 +36,28 @@ export const askChatbotPreview = async ({
   organizationId,
   input,
 }: AskChatbotPreviewOptions): Promise<AskChatbotPreviewResult> => {
-  // Record the service fn start time
-  const startedAt = Date.now();
-
-  // Find the current chatbot with its chat model provider
-  const matchedChatbot = await getChatbotForAskPreview({
+  const generated = await generateChatbotRagAnswer({
     db,
+    encryptionKey,
     chatbotId,
     organizationId,
+    question: input.question,
+    history: [],
   });
 
-  if (!matchedChatbot) {
+  if (generated.status === "chatbot_not_found") {
     return {
       status: "chatbot_not_found",
     };
   }
 
-  // Retrieve knowledge chunks
-  const retrievalResult = await retrieveKnowledgeChunks({
-    db,
-    encryptionKey,
-    organizationId,
-    knowledgeBaseId: matchedChatbot.chatbot.knowledgeBaseId,
-    input: {
-      query: input.question,
-    },
-  });
-
-  if (retrievalResult.status !== "retrieved") {
+  if (generated.status === "retrieval_failed") {
     return {
       status: "retrieval_failed",
     };
   }
 
-  // Get retrieved chunks
-  const chunks = retrievalResult.chunks;
-
-  let answer: string;
-  let promptPreview: string;
-  let citations: RagTraceCitation[];
-
-  try {
-    // Decrypt chatProvider provider's encryptedApiKey
-    const apiKey = await decryptApiKey({
-      encryptedApiKey: matchedChatbot.chatProvider.encryptedApiKey,
-      encryptionKey,
-    });
-
-    // Resolve the chat model
-    const model = resolveChatModel({
-      apiKey,
-      modelId: matchedChatbot.chatProvider.modelId,
-      provider: matchedChatbot.chatProvider.provider,
-      baseUrl: matchedChatbot.chatProvider.baseUrl,
-    });
-
-    // Generate rag answer
-    const generated = await generateRagAnswer({
-      model,
-      chunks,
-      question: input.question,
-      instructions: matchedChatbot.chatbot.systemInstructions,
-    });
-
-    answer = generated.answer.answer;
-    promptPreview = generated.prompt;
-    citations = getCitations({
-      citedChunkIds: generated.answer.citedChunkIds,
-      chunks,
-    });
-  } catch {
+  if (generated.status === "chat_provider_failed") {
     return {
       status: "chat_provider_failed",
     };
@@ -200,27 +66,28 @@ export const askChatbotPreview = async ({
   // Insert into rag_trace table
   const traceId = randomUUID();
   const now = new Date();
-  const latencyMs = Date.now() - startedAt;
 
   await db.insert(ragTrace).values({
     id: traceId,
     organizationId,
     chatbotId,
-    knowledgeBaseId: matchedChatbot.chatbot.knowledgeBaseId,
-    modelId: matchedChatbot.chatProvider.modelId,
+    origin: "preview",
+    messageId: null,
+    knowledgeBaseId: generated.knowledgeBaseId,
+    modelId: generated.modelId,
     question: input.question,
-    answer,
-    promptPreview,
-    citations,
-    retrievedChunks: chunks,
-    latencyMs,
+    answer: generated.answer,
+    promptPreview: generated.promptPreview,
+    citations: generated.citations,
+    retrievedChunks: generated.retrievedChunks,
+    latencyMs: generated.latencyMs,
     createdAt: now,
   });
 
   return {
     status: "answered",
-    answer,
-    citations,
+    answer: generated.answer,
+    citations: generated.citations,
     traceId,
   };
 };

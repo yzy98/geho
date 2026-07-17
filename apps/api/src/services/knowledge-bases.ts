@@ -129,7 +129,7 @@ export const listKnowledgeBases = async ({
     .select(knowledgeBaseSelection)
     .from(knowledgeBase)
     .where(eq(knowledgeBase.organizationId, organizationId))
-    .orderBy(desc(knowledgeBase.createdAt));
+    .orderBy(desc(knowledgeBase.createdAt), desc(knowledgeBase.id));
 
   return {
     status: "success",

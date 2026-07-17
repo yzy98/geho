@@ -169,7 +169,7 @@ export const listChatbotEmbedKeys = async ({
         eq(embedKeyTable.chatbotId, selectedChatbot.id)
       )
     )
-    .orderBy(desc(embedKeyTable.createdAt));
+    .orderBy(desc(embedKeyTable.createdAt), desc(embedKeyTable.id));
 
   return {
     status: "success",

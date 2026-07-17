@@ -93,7 +93,7 @@ export const listModelProviders = async ({
     .select(providerSelection)
     .from(modelProvider)
     .where(eq(modelProvider.organizationId, organizationId))
-    .orderBy(desc(modelProvider.createdAt));
+    .orderBy(desc(modelProvider.createdAt), desc(modelProvider.id));
 
   return {
     status: "success",

@@ -132,7 +132,7 @@ export const listChatbots = async ({
     .select(chatbotSelection)
     .from(chatbot)
     .where(eq(chatbot.organizationId, organizationId))
-    .orderBy(desc(chatbot.createdAt));
+    .orderBy(desc(chatbot.createdAt), desc(chatbot.id));
 
   return {
     status: "success",
