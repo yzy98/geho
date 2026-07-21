@@ -13,6 +13,7 @@ import {
   WidgetConfigurationError,
   WidgetConnectingState,
   WidgetConnectionError,
+  WidgetStorageWarning,
 } from "@/internal/components/widget-bootstrap-states";
 import { WidgetChatRuntime } from "@/internal/components/widget-chat-runtime";
 import { useWidgetBootstrap } from "@/internal/hooks/use-widget-bootstrap";
@@ -67,14 +68,22 @@ export function ChatWidget({ apiUrl, embedKey }: ChatWidgetProps) {
                 ) : null}
 
                 {bootstrap.status === "ready" ? (
-                  <WidgetChatRuntime
-                    apiUrl={bootstrap.normalizedApiUrl}
-                    embedKey={embedKey.trim()}
-                    initialMessages={bootstrap.messages}
-                    key={bootstrap.session.sessionId}
-                    sessionId={bootstrap.session.sessionId}
-                    sessionToken={bootstrap.session.sessionToken}
-                  />
+                  <>
+                    {bootstrap.storageWarning ? (
+                      <WidgetStorageWarning
+                        message={bootstrap.storageWarning}
+                      />
+                    ) : null}
+
+                    <WidgetChatRuntime
+                      apiUrl={bootstrap.normalizedApiUrl}
+                      embedKey={embedKey.trim()}
+                      initialMessages={bootstrap.messages}
+                      key={bootstrap.session.sessionId}
+                      sessionId={bootstrap.session.sessionId}
+                      sessionToken={bootstrap.session.sessionToken}
+                    />
+                  </>
                 ) : null}
               </CardContent>
             </Card>

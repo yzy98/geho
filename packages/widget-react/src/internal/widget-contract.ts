@@ -36,10 +36,14 @@ export type WidgetMessageDto =
       citations: WidgetCitation[];
     };
 
-export type WidgetSession = {
+export type CreateWidgetSessionResponse = {
   sessionId: string;
   sessionToken: string;
   createdAt: string;
+};
+
+export type WidgetSession = CreateWidgetSessionResponse & {
+  persistence: "local-storage" | "memory";
 };
 
 export type ListWidgetMessagesResponse = {

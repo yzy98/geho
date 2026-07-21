@@ -1,4 +1,5 @@
 import type {
+  CreateWidgetSessionResponse,
   ListWidgetMessagesResponse,
   WidgetMessageDto,
   WidgetSession,
@@ -104,7 +105,7 @@ async function requestJson(
   return payload;
 }
 
-function parseCreatedSession(payload: unknown): WidgetSession {
+function parseCreatedSession(payload: unknown): CreateWidgetSessionResponse {
   if (
     !isRecord(payload) ||
     typeof payload.sessionId !== "string" ||
@@ -183,7 +184,10 @@ export async function createWidgetSession(options: {
     headers: { "X-Heho-Key": options.embedKey },
   });
 
-  return parseCreatedSession(payload);
+  return {
+    ...parseCreatedSession(payload),
+    persistence: "memory",
+  };
 }
 
 export async function listWidgetMessages(options: {

@@ -1,8 +1,9 @@
 import {
-  createSessionCacheKey,
-  deleteMemorySession,
-  getMemorySession,
-  setMemorySession,
+  createSessionPersistence,
+  persistSession,
+  readPersistedSession,
+  removePersistedSession,
+  type SessionPersistence,
 } from "./session-storage";
 import {
   createWidgetSession,
@@ -21,14 +22,15 @@ export type WidgetBootstrapReadyData = {
   normalizedApiUrl: string;
   session: WidgetSession;
   messages: WidgetUIMessage[];
+  storageWarning: string | null;
 };
 
 const inFlightBootstraps = new Map<string, Promise<WidgetBootstrapReadyData>>();
 
-async function createAndStoreSession(options: {
+async function createAndPersistSession(options: {
   normalizedApiUrl: string;
   embedKey: string;
-  cacheKey: string;
+  persistence: SessionPersistence;
 }): Promise<WidgetBootstrapReadyData> {
   // POST /widget/sessions API to create a new Chat Session
   const session = await createWidgetSession({
@@ -36,27 +38,29 @@ async function createAndStoreSession(options: {
     embedKey: options.embedKey,
   });
 
-  // Store the newly created Session into memory storage
-  setMemorySession(options.cacheKey, session);
+  // Persist session (LocalStorage or fallhack Memory)
+  const persisted = persistSession(options.persistence, session);
 
   return {
     normalizedApiUrl: options.normalizedApiUrl,
-    session,
+    session: persisted.session,
     messages: [], // Newly created Session has no Messages
+    storageWarning: persisted.warning,
   };
 }
 
 async function runBootstrap(options: {
   normalizedApiUrl: string;
   embedKey: string;
-  cacheKey: string;
+  persistence: SessionPersistence;
 }): Promise<WidgetBootstrapReadyData> {
-  // Read if the Chat session is stored in memory already
-  const storedSession = getMemorySession(options.cacheKey);
+  // Get persisted session from localStorage or fallbacked memory storage
+  const persistedSession = readPersistedSession(options.persistence);
 
-  // Create a new Chat Session and store it in memory
-  if (!storedSession) {
-    return await createAndStoreSession(options);
+  // Create a new Chat Session and persist it
+  // Newly created session has no messages, so return it
+  if (!persistedSession) {
+    return await createAndPersistSession(options);
   }
 
   try {
@@ -64,23 +68,25 @@ async function runBootstrap(options: {
     const history = await listWidgetMessages({
       apiUrl: options.normalizedApiUrl,
       embedKey: options.embedKey,
-      session: storedSession,
+      session: persistedSession,
     });
 
     return {
       normalizedApiUrl: options.normalizedApiUrl,
-      session: storedSession,
+      session: persistedSession,
       messages: mapWidgetHistory(history),
+      storageWarning: options.persistence.warning,
     };
   } catch (error) {
-    // Session expired, remove it from memory
+    // Session expired, remove it from persistence
+    // And create a new session, return it
     if (
       error instanceof WidgetApiError &&
       error.status === 410 &&
       error.code === "SESSION_EXPIRED"
     ) {
-      deleteMemorySession(options.cacheKey);
-      return await createAndStoreSession(options);
+      removePersistedSession(options.persistence);
+      return await createAndPersistSession(options);
     }
 
     throw error;
@@ -101,10 +107,13 @@ export async function bootstrapWidget({
     throw new WidgetConfigurationError("embedKey is required.");
   }
 
-  // Calculate the cache key of this widget
-  const cacheKey = createSessionCacheKey(normalizedApiUrl, embedKey);
+  // Create session persistence for storage, based on normalizeApiUrl and embedKey
+  const persistence = await createSessionPersistence(
+    normalizedApiUrl,
+    embedKey
+  );
 
-  const existing = inFlightBootstraps.get(cacheKey);
+  const existing = inFlightBootstraps.get(persistence.cacheKey);
 
   if (existing) {
     return await existing;
@@ -114,16 +123,16 @@ export async function bootstrapWidget({
   const promise = runBootstrap({
     normalizedApiUrl,
     embedKey,
-    cacheKey,
+    persistence,
   });
 
-  inFlightBootstraps.set(cacheKey, promise);
+  inFlightBootstraps.set(persistence.cacheKey, promise);
 
   try {
     return await promise;
   } finally {
-    if (inFlightBootstraps.get(cacheKey) === promise) {
-      inFlightBootstraps.delete(cacheKey);
+    if (inFlightBootstraps.get(persistence.cacheKey) === promise) {
+      inFlightBootstraps.delete(persistence.cacheKey);
     }
   }
 }
