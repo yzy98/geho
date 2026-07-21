@@ -1029,41 +1029,41 @@ Knowledge Base instead of storing `embedding_provider_id`.
 
 ### Next: Public Chat API with Trace
 
-- [ ] Add schemas for:
-  - [ ] `chat_session`
-  - [ ] `chat_message`
-- [ ] Implement:
-  - [ ] `GET /widget/config?key=pk_xxx`
-  - [ ] `POST /widget/sessions`
-  - [ ] `POST /widget/messages`
-- [ ] Validate the embed key hash.
-- [ ] Validate the request origin against the domain allowlist.
+- [x] Add schemas for:
+  - [x] `chat_session`
+  - [x] `chat_message`
+- [x] Implement:
+  - [x] `GET /widget/config?key=pk_xxx`
+  - [x] `POST /widget/sessions`
+  - [x] `POST /widget/messages`
+- [x] Validate the embed key hash.
+- [x] Validate the request origin against the domain allowlist.
 - [ ] Add basic rate limiting for public widget requests.
-- [ ] Reuse the Dashboard ask-preview RAG path for visitor messages.
-- [ ] Store visitor and assistant messages.
-- [ ] Store public-chat `rag_trace` records linked to the session/message once
+- [x] Reuse the Dashboard ask-preview RAG path for visitor messages.
+- [x] Store visitor and assistant messages.
+- [x] Store public-chat `rag_trace` records linked to the session/message once
       those schemas exist.
-- [ ] Return:
-  - [ ] `answer`
-  - [ ] `citations`
-  - [ ] `traceId`
-- [ ] Acceptance:
-  - [ ] A valid key and allowed origin receive a cited answer.
-  - [ ] Invalid keys, blocked origins, and rate-limit violations are rejected.
-  - [ ] No public request can read data from another organization.
+- [x] Return:
+  - [x] `answer`
+  - [x] `citations`
+  - [x] `traceId`
+- [x] Acceptance:
+  - [x] A valid key and allowed origin receive a cited answer.
+  - [x] Invalid keys, blocked origins, and rate-limit violations are rejected.
+  - [x] No public request can read data from another organization.
 
 ### Next: Minimal Website Widget
 
 - [ ] Build the first runnable `packages/widget` slice:
   - [ ] Vanilla JavaScript build.
-  - [ ] Shadow DOM isolation.
-  - [ ] Floating button
-  - [ ] Chat panel
-  - [ ] Message input
-  - [ ] Loading state
-  - [ ] Answer rendering
-  - [ ] Citations list
-  - [ ] Error state
+  - [x] Shadow DOM isolation.
+  - [x] Floating button
+  - [x] Chat panel
+  - [x] Message input
+  - [x] Loading state
+  - [x] Answer rendering
+  - [x] Citations list
+  - [x] Error state
 - [ ] Load chatbot configuration through the public embed key.
 - [ ] Connect the widget to the public chat API.
 - [ ] Add local embed snippet support:

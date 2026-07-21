@@ -6,10 +6,13 @@ import {
   InputGroupAddon,
   InputGroupButton,
   InputGroupTextarea,
-} from "./components/ui/input-group";
-import { Spinner } from "./components/ui/spinner";
-import type { WidgetCitation, WidgetUIMessage } from "./widget-contract";
-import { createWidgetTransport } from "./widget-transport";
+} from "@/internal/components/ui/input-group";
+import { Spinner } from "@/internal/components/ui/spinner";
+import type {
+  WidgetCitation,
+  WidgetUIMessage,
+} from "@/internal/widget-contract";
+import { createWidgetTransport } from "../widget-transport";
 
 type WidgetChatRuntimeProps = {
   apiUrl: string;

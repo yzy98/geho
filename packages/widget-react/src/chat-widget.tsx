@@ -1,6 +1,6 @@
 import { MessageCircleIcon, XIcon } from "lucide-react";
 import { useState } from "react";
-
+import { WidgetShadowRoot } from "@/internal/components/shadow-root";
 import { Button } from "@/internal/components/ui/button";
 import {
   Card,
@@ -9,14 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/internal/components/ui/card";
-import { WidgetShadowRoot } from "@/internal/shadow-root";
-import { useWidgetBootstrap } from "./internal/hooks/use-widget-bootstrap";
 import {
   WidgetConfigurationError,
   WidgetConnectingState,
   WidgetConnectionError,
-} from "./internal/widget-bootstrap-states";
-import { WidgetChatRuntime } from "./internal/widget-chat-runtime";
+} from "@/internal/components/widget-bootstrap-states";
+import { WidgetChatRuntime } from "@/internal/components/widget-chat-runtime";
+import { useWidgetBootstrap } from "@/internal/hooks/use-widget-bootstrap";
 
 export type ChatWidgetProps = {
   apiUrl: string;
