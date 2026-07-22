@@ -142,8 +142,5 @@ jobs:
 
       - name: Publish package
         env:
-          # Bootstrap 0.0.1 with the protected Environment secret. npm will use
-          # OIDC after Trusted Publishing is configured and this line is removed.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           TARBALL_PATH: ${{ steps.pack.outputs.tarball_path }}
         run: npm publish "$TARBALL_PATH" --access public --ignore-scripts
