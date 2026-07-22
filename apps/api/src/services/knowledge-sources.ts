@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
-import type { DbClient } from "@heho/db";
-import { and, count, desc, eq } from "@heho/db/helper";
+import type { DbClient } from "@geho/db";
+import { and, count, desc, eq } from "@geho/db/helper";
 import {
   knowledgeBase,
   knowledgeChunk,
   knowledgeSource,
-} from "@heho/db/schema";
+} from "@geho/db/schema";
 import type {
   CreateTextKnowledgeSourceInput,
   KnowledgeSourceDto,

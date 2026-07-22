@@ -1,5 +1,5 @@
-import { createAuthServer } from "@heho/auth/server";
-import { createDb } from "@heho/db";
+import { createAuthServer } from "@geho/auth/server";
+import { createDb } from "@geho/db";
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
 import { env } from "./env";

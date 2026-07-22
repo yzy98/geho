@@ -1,30 +1,30 @@
 services:
   postgres:
     image: pgvector/pgvector:pg17
-    container_name: heho-postgres
+    container_name: geho-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: heho
-      POSTGRES_PASSWORD: heho
-      POSTGRES_DB: heho
+      POSTGRES_USER: geho
+      POSTGRES_PASSWORD: geho
+      POSTGRES_DB: geho
     ports:
       - "5432:5432"
     volumes:
-      - heho_postgres_data:/var/lib/postgresql/data
+      - geho_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U heho -d heho"]
+      test: ["CMD-SHELL", "pg_isready -U geho -d geho"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   redis:
     image: redis:7-alpine
-    container_name: heho-redis
+    container_name: geho-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
-      - heho_redis_data:/data
+      - geho_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -32,5 +32,5 @@ services:
       retries: 10
 
 volumes:
-  heho_postgres_data:
-  heho_redis_data:
+  geho_postgres_data:
+  geho_redis_data:

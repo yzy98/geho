@@ -5,7 +5,7 @@ import {
   type SupportedEmbeddingModel,
   type SupportedEmbeddingModelIdFor,
   type SupportedEmbeddingModelProvider,
-} from "@heho/shared";
+} from "@geho/shared";
 import type { EmbeddingModel } from "ai";
 
 type ResolvedEmbeddingModelFor<

@@ -1,9 +1,9 @@
 "use client";
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { Button } from "@heho/ui/components/button";
+import { Button } from "@geho/ui/components/button";
 
-import { cn } from "@heho/ui/lib/utils";
+import { cn } from "@geho/ui/lib/utils";
 import { XIcon } from "lucide-react";
 import type * as React from "react";
 

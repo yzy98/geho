@@ -1,7 +1,7 @@
-import type { AuthServer } from "@heho/auth/server";
-import type { DbClient } from "@heho/db";
-import { and, eq } from "@heho/db/helper";
-import { member, user } from "@heho/db/schema";
+import type { AuthServer } from "@geho/auth/server";
+import type { DbClient } from "@geho/db";
+import { and, eq } from "@geho/db/helper";
+import { member, user } from "@geho/db/schema";
 import type { AddOrganizationMemberInput } from "../schemas/organization-members";
 
 export type Member = Awaited<ReturnType<AuthServer["api"]["addMember"]>>;

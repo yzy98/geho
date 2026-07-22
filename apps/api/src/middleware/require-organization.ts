@@ -1,4 +1,4 @@
-import type { AuthServer } from "@heho/auth/server";
+import type { AuthServer } from "@geho/auth/server";
 import { createMiddleware } from "hono/factory";
 import type { AppEnv } from "../context";
 

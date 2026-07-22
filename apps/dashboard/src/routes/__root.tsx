@@ -1,4 +1,4 @@
-import { Toaster } from "@heho/ui/components/sonner";
+import { Toaster } from "@geho/ui/components/sonner";
 import type { QueryClient } from "@tanstack/react-query";
 import {
   type CreateLinkProps,

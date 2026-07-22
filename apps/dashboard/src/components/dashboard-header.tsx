@@ -5,8 +5,8 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@heho/ui/components/breadcrumb";
-import { SidebarTrigger } from "@heho/ui/components/sidebar";
+} from "@geho/ui/components/breadcrumb";
+import { SidebarTrigger } from "@geho/ui/components/sidebar";
 import { Link, useMatches } from "@tanstack/react-router";
 import { Fragment } from "react";
 

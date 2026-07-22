@@ -1,5 +1,5 @@
-import type { AuthServer } from "@heho/auth/server";
-import type { DbClient } from "@heho/db";
+import type { AuthServer } from "@geho/auth/server";
+import type { DbClient } from "@geho/db";
 import type { StartKnowledgeSourceIngestion } from "../services/knowledge-source-ingestion";
 
 export type RouteDependencies = {

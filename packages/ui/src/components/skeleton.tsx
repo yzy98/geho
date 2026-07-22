@@ -1,4 +1,4 @@
-import { cn } from "@heho/ui/lib/utils";
+import { cn } from "@geho/ui/lib/utils";
 
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (

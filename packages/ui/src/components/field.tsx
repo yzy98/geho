@@ -1,7 +1,7 @@
-import { Label } from "@heho/ui/components/label";
-import { Separator } from "@heho/ui/components/separator";
+import { Label } from "@geho/ui/components/label";
+import { Separator } from "@geho/ui/components/separator";
 
-import { cn } from "@heho/ui/lib/utils";
+import { cn } from "@geho/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useMemo } from "react";
 

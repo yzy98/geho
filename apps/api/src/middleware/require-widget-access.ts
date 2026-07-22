@@ -1,4 +1,4 @@
-import type { DbClient } from "@heho/db";
+import type { DbClient } from "@geho/db";
 import { createMiddleware } from "hono/factory";
 import type { WidgetEnv } from "../context";
 import { widgetAccessHeadersSchema } from "../schemas/widget";
@@ -14,7 +14,7 @@ export const requireWidgetAccess = (db: DbClient) =>
     // Validate headers
     const parsed = await widgetAccessHeadersSchema.safeParseAsync({
       origin: c.req.header("origin"),
-      "x-heho-key": c.req.header("x-heho-key"),
+      "x-geho-key": c.req.header("x-geho-key"),
     });
 
     if (!parsed.success) {

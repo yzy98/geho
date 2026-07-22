@@ -1,5 +1,5 @@
 {
-  "name": "@heho/api-client",
+  "name": "@geho/api-client",
   "version": "1.0.0",
   "type": "module",
   "private": true,
@@ -14,6 +14,6 @@
     "hono": "catalog:"
   },
   "devDependencies": {
-    "@heho/api": "workspace:*"
+    "@geho/api": "workspace:*"
   }
 }

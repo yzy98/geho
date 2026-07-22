@@ -1,16 +1,16 @@
-# Heho
+# Geho
 
 Open-source, self-hosted AI chatbots for company websites, with transparent RAG and bring-your-own model providers.
 
-Heho helps teams deploy an embeddable AI chatbot on their own infrastructure. Companies manage agents, knowledge sources, model providers, embed keys, chat logs, and RAG traces from a web dashboard, then install the chatbot on their website through a script tag, React component, or SDK.
+Geho helps teams deploy an embeddable AI chatbot on their own infrastructure. Companies manage agents, knowledge sources, model providers, embed keys, chat logs, and RAG traces from a web dashboard, then install the chatbot on their website through a script tag, React component, or SDK.
 
-Unlike closed chatbot SaaS tools, Heho is designed around control and inspectability: teams can see what documents were indexed, how they were chunked, which chunks were retrieved, what prompt was sent, which model answered, which sources were cited, and how many tokens were used.
+Unlike closed chatbot SaaS tools, Geho is designed around control and inspectability: teams can see what documents were indexed, how they were chunked, which chunks were retrieved, what prompt was sent, which model answered, which sources were cited, and how many tokens were used.
 
-## Why Heho?
+## Why Geho?
 
 Many teams want an AI support chatbot, but do not want to send their knowledge base, model provider credentials, and customer conversations into a black-box SaaS product.
 
-Heho is built for teams that want:
+Geho is built for teams that want:
 
 - **Self-hosting**: deploy on your own infrastructure with Docker.
 - **Transparent RAG**: inspect sources, chunks, retrieval scores, prompts, citations, and token usage.
@@ -21,7 +21,7 @@ Heho is built for teams that want:
 
 ## Product Overview
 
-Heho is a B2B AI chatbot platform for company websites.
+Geho is a B2B AI chatbot platform for company websites.
 
 The core flow:
 
@@ -38,7 +38,7 @@ Admin dashboard
   -> chatbot answers with citations
 ```
 
-Heho is not trying to be a general AI workflow platform. It is focused on one job:
+Geho is not trying to be a general AI workflow platform. It is focused on one job:
 
 > A self-hosted website chatbot that makes RAG transparent and debuggable.
 
@@ -55,7 +55,7 @@ The first MVP should prove one thing:
 3. Admin configures chat and embedding Model Provider capabilities.
 4. Admin creates a Knowledge Base with one embedding Model Provider.
 5. Admin adds a text or URL Knowledge Source to the Knowledge Base.
-6. Heho chunks the content, embeds it, and stores it.
+6. Geho chunks the content, embeds it, and stores it.
 7. Admin creates a Chatbot with one chat Model Provider and one Knowledge Base.
 8. Admin inspects indexed chunks in the dashboard.
 9. Admin generates a public Embed Key.
@@ -100,7 +100,7 @@ The first MVP should prove one thing:
 
 ## Tech Stack
 
-Heho should be optimized for self-hosting first.
+Geho should be optimized for self-hosting first.
 
 Recommended stack:
 
@@ -158,10 +158,10 @@ packages/
 
 ### Organization
 
-Heho uses the Better Auth organization plugin as its company and tenant model.
+Geho uses the Better Auth organization plugin as its company and tenant model.
 An Organization owns Model Provider configs, Knowledge Bases, Chatbots, Embed
 Keys, chat logs, and usage. Better Auth members link Dashboard users to
-Organizations; Heho does not maintain an additional tenant or membership
+Organizations; Geho does not maintain an additional tenant or membership
 model.
 
 ### Chatbot
@@ -249,13 +249,13 @@ token usage
 latency
 ```
 
-This is a core differentiator. Heho should make every answer inspectable.
+This is a core differentiator. Geho should make every answer inspectable.
 
 ### Embed Key
 
 Websites should not use secret keys.
 
-Heho should use two key types:
+Geho should use two key types:
 
 ```txt
 public embed key: pk_xxx
@@ -268,7 +268,7 @@ secret API key: sk_xxx
 ```
 
 An embed key is an opaque, public identifier for one Chatbot deployment. It
-does not encode a Chatbot or Organization ID. Heho generates the key, stores
+does not encode a Chatbot or Organization ID. Geho generates the key, stores
 only its deterministic SHA-256 hash and a display-safe prefix, and returns the
 raw key once so it can be installed in a website. A Chatbot may have multiple
 keys for production, staging, local development, or key rotation.
@@ -276,7 +276,7 @@ keys for production, staging, local development, or key rotation.
 ```mermaid
 flowchart TD
   subgraph Creation["Create and install"]
-    A[Owner selects a Chatbot] --> B[Heho generates a random pk_* key]
+    A[Owner selects a Chatbot] --> B[Geho generates a random pk_* key]
     B --> C[Calculate SHA-256]
     C --> D[(Store keyHash, keyPrefix,<br/>chatbotId, organizationId,<br/>and allowedDomains)]
     B --> E[Return the raw key once]
@@ -429,7 +429,7 @@ or RAG record from being associated across Organizations.
 
 ```html
 <script
-  src="https://cdn.example.com/heho-widget.js"
+  src="https://cdn.example.com/geho-widget.js"
   data-chatbot-key="pk_xxx"
   data-position="bottom-right"
 ></script>
@@ -438,14 +438,13 @@ or RAG record from being associated across Organizations.
 ### React
 
 ```tsx
-import { ChatbotWidget } from "@heho/react";
+import { ChatWidget } from "@geho/widget-react";
 
 export function App() {
   return (
     <ChatbotWidget
-      chatbotKey="pk_xxx"
-      position="bottom-right"
-      theme="light"
+      apiUrl="xxxx" 
+      embedKey="pk_xxx"
     />
   );
 }
@@ -454,13 +453,13 @@ export function App() {
 ### Headless SDK
 
 ```ts
-import { createHehoClient } from "@heho/sdk";
+import { createGehoClient } from "@geho/sdk";
 
-const heho = createHehoClient({
+const geho = createGehoClient({
   chatbotKey: "pk_xxx",
 });
 
-const response = await heho.chat.sendMessage({
+const response = await geho.chat.sendMessage({
   sessionId: "session_xxx",
   message: "How do I reset my password?",
 });
@@ -501,8 +500,8 @@ The pipeline should be implemented directly in `packages/rag` rather than hidden
 The target setup should eventually be:
 
 ```bash
-git clone https://github.com/your-org/heho
-cd heho
+git clone https://github.com/yzy98/geho.git
+cd geho
 cp .env.example .env
 colima start
 pnpm infra:up
@@ -529,7 +528,7 @@ minio
 
 ## Local Development Flow
 
-Heho uses Colima and Docker Compose for local infrastructure, while app code
+Geho uses Colima and Docker Compose for local infrastructure, while app code
 runs through pnpm and Turborepo on the host machine.
 
 ```txt
@@ -574,7 +573,7 @@ Useful infrastructure commands:
 ```bash
 pnpm infra:ps          # Show running containers
 pnpm infra:logs        # Follow infrastructure logs
-pnpm infra:postgres    # Open psql for the local Heho database
+pnpm infra:postgres    # Open psql for the local Geho database
 pnpm infra:redis       # Open redis-cli
 pnpm infra:down        # Stop containers but keep local data
 ```
@@ -599,7 +598,7 @@ hard project dependency. Developers using Docker Desktop can still use the same
 
 ## Business Model
 
-Heho can be open-source while still supporting a commercial business.
+Geho can be open-source while still supporting a commercial business.
 
 Recommended model:
 
@@ -635,14 +634,14 @@ Recommended model:
 
 ## Positioning
 
-Heho is not:
+Geho is not:
 
 - a closed chatbot SaaS
 - a generic workflow builder
 - a multi-agent playground
 - a black-box RAG product
 
-Heho is:
+Geho is:
 
 > An open-source, self-hosted AI chatbot platform for company websites, with transparent RAG, BYO model providers, and embeddable widgets.
 
@@ -958,10 +957,10 @@ Knowledge Base instead of storing `embedding_provider_id`.
   - [x] An owner can add text to a Knowledge Base and see it indexed.
   - [x] Failed ingestion exposes an actionable error.
 - [x] Run:
-  - [x] `pnpm --filter @heho/api typecheck`
-  - [x] `pnpm --filter @heho/api build`
-  - [x] `pnpm --filter @heho/dashboard typecheck`
-  - [x] `pnpm --filter @heho/dashboard build`
+  - [x] `pnpm --filter @geho/api typecheck`
+  - [x] `pnpm --filter @geho/api build`
+  - [x] `pnpm --filter @geho/dashboard typecheck`
+  - [x] `pnpm --filter @geho/dashboard build`
 
 ### Checkpoint 9: Dashboard Retrieval Preview
 
@@ -978,10 +977,10 @@ Knowledge Base instead of storing `embedding_provider_id`.
   - [x] A Dashboard user can ask a retrieval query and inspect returned chunks.
   - [x] Retrieval never crosses Organization or Knowledge Base boundaries.
 - [x] Run:
-  - [x] `pnpm --filter @heho/api typecheck`
-  - [x] `pnpm --filter @heho/api build`
-  - [x] `pnpm --filter @heho/dashboard typecheck`
-  - [x] `pnpm --filter @heho/dashboard build`
+  - [x] `pnpm --filter @geho/api typecheck`
+  - [x] `pnpm --filter @geho/api build`
+  - [x] `pnpm --filter @geho/dashboard typecheck`
+  - [x] `pnpm --filter @geho/dashboard build`
 
 ### Checkpoint 10: Dashboard Chatbot Ask Preview
 
@@ -1014,10 +1013,10 @@ Knowledge Base instead of storing `embedding_provider_id`.
   - [x] The answer, retrieved chunks, and trace belong to the same Organization,
         Chatbot, and Knowledge Base.
 - [x] Run:
-  - [x] `pnpm --filter @heho/api typecheck`
-  - [x] `pnpm --filter @heho/api build`
-  - [x] `pnpm --filter @heho/dashboard typecheck`
-  - [x] `pnpm --filter @heho/dashboard build`
+  - [x] `pnpm --filter @geho/api typecheck`
+  - [x] `pnpm --filter @geho/api build`
+  - [x] `pnpm --filter @geho/dashboard typecheck`
+  - [x] `pnpm --filter @geho/dashboard build`
 
 ### Next: Schema Rollout
 

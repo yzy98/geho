@@ -1,6 +1,6 @@
-import type { DbClient } from "@heho/db";
-import { and, cosineDistance, desc, eq, gt, sql } from "@heho/db/helper";
-import { knowledgeChunk, knowledgeSource } from "@heho/db/schema";
+import type { DbClient } from "@geho/db";
+import { and, cosineDistance, desc, eq, gt, sql } from "@geho/db/helper";
+import { knowledgeChunk, knowledgeSource } from "@geho/db/schema";
 
 export const DEFAULT_RETRIEVAL_LIMIT = 5;
 export const DEFAULT_RETRIEVAL_MIN_SIMILARITY = 0.5;

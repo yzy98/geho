@@ -5,7 +5,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@heho/ui/components/sidebar";
+} from "@geho/ui/components/sidebar";
 import { Link } from "@tanstack/react-router";
 import {
   BotIcon,

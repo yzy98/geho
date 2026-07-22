@@ -1,6 +1,6 @@
-import type { DbClient } from "@heho/db";
-import { and, eq } from "@heho/db/helper";
-import { knowledgeBase, modelProvider } from "@heho/db/schema";
+import type { DbClient } from "@geho/db";
+import { and, eq } from "@geho/db/helper";
+import { knowledgeBase, modelProvider } from "@geho/db/schema";
 import { decryptApiKey } from "../lib/api-key-encryption";
 import { generateEmbedding } from "../lib/embedding";
 import { resolveEmbeddingModel } from "../lib/embedding-models";

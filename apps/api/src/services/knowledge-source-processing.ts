@@ -1,13 +1,13 @@
 import { randomUUID } from "node:crypto";
-import type { DbClient } from "@heho/db";
-import { and, eq } from "@heho/db/helper";
+import type { DbClient } from "@geho/db";
+import { and, eq } from "@geho/db/helper";
 import {
   knowledgeBase,
   knowledgeChunk,
   knowledgeSource,
   modelProvider,
-} from "@heho/db/schema";
-import { type Chunk, getChunks } from "@heho/rag";
+} from "@geho/db/schema";
+import { type Chunk, getChunks } from "@geho/rag";
 import { decryptApiKey } from "../lib/api-key-encryption";
 import {
   EMBEDDING_DIMENSIONS,

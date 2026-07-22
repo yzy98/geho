@@ -181,7 +181,7 @@ export async function createWidgetSession(options: {
   const payload = await requestJson(`${options.apiUrl}/widget/sessions`, {
     method: "POST",
     credentials: "omit",
-    headers: { "X-Heho-Key": options.embedKey },
+    headers: { "X-Geho-Key": options.embedKey },
   });
 
   return {
@@ -203,7 +203,7 @@ export async function listWidgetMessages(options: {
       method: "GET",
       credentials: "omit",
       headers: {
-        "X-Heho-Key": options.embedKey,
+        "X-Geho-Key": options.embedKey,
         Authorization: `Bearer ${options.session.sessionToken}`,
       },
     }

@@ -4,8 +4,8 @@ import {
   findSupportedEmbeddingModel,
   SUPPORTED_CHAT_MODELS,
   SUPPORTED_EMBEDDING_MODELS,
-} from "@heho/shared";
-import { Button } from "@heho/ui/components/button";
+} from "@geho/shared";
+import { Button } from "@geho/ui/components/button";
 import {
   Field,
   FieldDescription,
@@ -13,8 +13,8 @@ import {
   FieldGroup,
   FieldLabel,
   FieldSet,
-} from "@heho/ui/components/field";
-import { Input } from "@heho/ui/components/input";
+} from "@geho/ui/components/field";
+import { Input } from "@geho/ui/components/input";
 import {
   Select,
   SelectContent,
@@ -22,9 +22,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@heho/ui/components/select";
-import { toast } from "@heho/ui/components/sonner";
-import { Spinner } from "@heho/ui/components/spinner";
+} from "@geho/ui/components/select";
+import { toast } from "@geho/ui/components/sonner";
+import { Spinner } from "@geho/ui/components/spinner";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ComponentProps } from "react";

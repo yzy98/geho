@@ -1,4 +1,4 @@
-import { toast } from "@heho/ui/components/sonner";
+import { toast } from "@geho/ui/components/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useNavigate,

@@ -1,7 +1,7 @@
-import type { AuthServer } from "@heho/auth/server";
-import type { DbClient } from "@heho/db";
-import { sql } from "@heho/db/helper";
-import { organization } from "@heho/db/schema";
+import type { AuthServer } from "@geho/auth/server";
+import type { DbClient } from "@geho/db";
+import { sql } from "@geho/db/helper";
+import { organization } from "@geho/db/schema";
 import type { Organization } from "../context";
 import type { CreateOrganizationInput } from "../schemas/organizations";
 

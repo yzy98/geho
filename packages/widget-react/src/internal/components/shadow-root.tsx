@@ -38,14 +38,14 @@ export function WidgetShadowRoot({ children }: WidgetShadowRootProps) {
 
   return (
     <>
-      <div data-heho-widget-host="" ref={hostRef} />
+      <div data-geho-widget-host="" ref={hostRef} />
 
       {shadowRoot
         ? createPortal(
             <>
-              <style data-heho-widget-styles="">{shadowStyles}</style>
+              <style data-geho-widget-styles="">{shadowStyles}</style>
 
-              <div className="heho-widget-root">{children}</div>
+              <div className="geho-widget-root">{children}</div>
             </>,
             shadowRoot
           )

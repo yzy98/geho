@@ -1,11 +1,11 @@
-import type { DbClient } from "@heho/db";
-import { and, eq } from "@heho/db/helper";
+import type { DbClient } from "@geho/db";
+import { and, eq } from "@geho/db/helper";
 import {
   chatbot,
   modelProvider,
   type RagTraceCitation,
   type RagTraceRetrievedChunk,
-} from "@heho/db/schema";
+} from "@geho/db/schema";
 import { decryptApiKey } from "../lib/api-key-encryption";
 import { resolveChatModel } from "../lib/chat-models";
 import {

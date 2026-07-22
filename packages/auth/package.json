@@ -1,5 +1,5 @@
 {
-  "name": "@heho/auth",
+  "name": "@geho/auth",
   "version": "1.0.0",
   "type": "module",
   "private": true,
@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@heho/db": "workspace:*",
+    "@geho/db": "workspace:*",
     "better-auth": "^1.6.19"
   }
 }

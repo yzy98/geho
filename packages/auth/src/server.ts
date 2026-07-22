@@ -1,4 +1,4 @@
-import { authSchema, type DbClient } from "@heho/db";
+import { authSchema, type DbClient } from "@geho/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins/organization";
@@ -18,7 +18,7 @@ export const createAuthServer = ({
   trustedOrigins,
 }: CreateAuthServerOptions) =>
   betterAuth({
-    appName: "Heho",
+    appName: "Geho",
     baseURL,
     basePath: "/auth",
     secret,

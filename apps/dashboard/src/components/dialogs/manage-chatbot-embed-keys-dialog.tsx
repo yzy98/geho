@@ -3,21 +3,21 @@ import {
   AlertAction,
   AlertDescription,
   AlertTitle,
-} from "@heho/ui/components/alert";
-import { Button } from "@heho/ui/components/button";
+} from "@geho/ui/components/alert";
+import { Button } from "@geho/ui/components/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@heho/ui/components/card";
-import { Input } from "@heho/ui/components/input";
-import { ResponsiveDialog } from "@heho/ui/components/responsive-dialog";
-import { Separator } from "@heho/ui/components/separator";
-import { Skeleton } from "@heho/ui/components/skeleton";
-import { toast } from "@heho/ui/components/sonner";
-import { useIsMobile } from "@heho/ui/hooks/use-mobile";
+} from "@geho/ui/components/card";
+import { Input } from "@geho/ui/components/input";
+import { ResponsiveDialog } from "@geho/ui/components/responsive-dialog";
+import { Separator } from "@geho/ui/components/separator";
+import { Skeleton } from "@geho/ui/components/skeleton";
+import { toast } from "@geho/ui/components/sonner";
+import { useIsMobile } from "@geho/ui/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangleIcon, CopyIcon, KeyRoundIcon } from "lucide-react";
 import { useRef, useState } from "react";

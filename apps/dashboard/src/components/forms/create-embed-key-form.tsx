@@ -1,14 +1,14 @@
-import { Button } from "@heho/ui/components/button";
+import { Button } from "@geho/ui/components/button";
 import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
   FieldSet,
-} from "@heho/ui/components/field";
-import { toast } from "@heho/ui/components/sonner";
-import { Spinner } from "@heho/ui/components/spinner";
-import { Textarea } from "@heho/ui/components/textarea";
+} from "@geho/ui/components/field";
+import { toast } from "@geho/ui/components/sonner";
+import { Spinner } from "@geho/ui/components/spinner";
+import { Textarea } from "@geho/ui/components/textarea";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ComponentProps } from "react";

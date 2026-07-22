@@ -3,16 +3,16 @@ import {
   AlertAction,
   AlertDescription,
   AlertTitle,
-} from "@heho/ui/components/alert";
-import { Button, buttonVariants } from "@heho/ui/components/button";
+} from "@geho/ui/components/alert";
+import { Button, buttonVariants } from "@geho/ui/components/button";
 import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
   FieldSet,
-} from "@heho/ui/components/field";
-import { Input } from "@heho/ui/components/input";
+} from "@geho/ui/components/field";
+import { Input } from "@geho/ui/components/input";
 import {
   Select,
   SelectContent,
@@ -20,10 +20,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@heho/ui/components/select";
-import { toast } from "@heho/ui/components/sonner";
-import { Spinner } from "@heho/ui/components/spinner";
-import { Textarea } from "@heho/ui/components/textarea";
+} from "@geho/ui/components/select";
+import { toast } from "@geho/ui/components/sonner";
+import { Spinner } from "@geho/ui/components/spinner";
+import { Textarea } from "@geho/ui/components/textarea";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";

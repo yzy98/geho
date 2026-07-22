@@ -1,5 +1,5 @@
-import { ResponsiveDialog } from "@heho/ui/components/responsive-dialog";
-import { useIsMobile } from "@heho/ui/hooks/use-mobile";
+import { ResponsiveDialog } from "@geho/ui/components/responsive-dialog";
+import { useIsMobile } from "@geho/ui/hooks/use-mobile";
 import { CreateModelProviderForm } from "@/components/forms/create-model-provider-form";
 
 type CreateModelProviderDialogProps = {

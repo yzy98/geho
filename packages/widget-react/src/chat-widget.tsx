@@ -79,7 +79,7 @@ function WidgetPanel({ apiUrl, embedKey, isOpen, onClose }: WidgetPanelProps) {
       hidden={!isOpen}
     >
       <CardHeader className="border-b">
-        <CardTitle>Ask Heho</CardTitle>
+        <CardTitle>Ask Geho</CardTitle>
         <CardAction>
           <Button
             aria-label="Close chat"

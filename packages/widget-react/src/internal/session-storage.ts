@@ -1,6 +1,6 @@
 import type { WidgetSession } from "./widget-contract";
 
-const STORAGE_PREFIX = "heho:widget-react:v1:";
+const STORAGE_PREFIX = "geho:widget-react:v1:";
 const SESSION_TOKEN_PATTERN = /^st_[A-Za-z0-9_-]{43}$/;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

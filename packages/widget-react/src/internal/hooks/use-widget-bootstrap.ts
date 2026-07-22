@@ -46,7 +46,7 @@ function toBootstrapErrorState(error: unknown): WidgetBootstrapState {
   return {
     status: "recoverable-error",
     message:
-      "Heho could not be reached. Check the API server and network connection.",
+      "Geho could not be reached. Check the API server and network connection.",
   };
 }
 

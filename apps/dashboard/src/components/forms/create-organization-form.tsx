@@ -1,4 +1,4 @@
-import { Button } from "@heho/ui/components/button";
+import { Button } from "@geho/ui/components/button";
 import {
   Card,
   CardContent,
@@ -6,7 +6,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@heho/ui/components/card";
+} from "@geho/ui/components/card";
 import {
   Field,
   FieldDescription,
@@ -14,10 +14,10 @@ import {
   FieldGroup,
   FieldLabel,
   FieldSet,
-} from "@heho/ui/components/field";
-import { Input } from "@heho/ui/components/input";
-import { toast } from "@heho/ui/components/sonner";
-import { Spinner } from "@heho/ui/components/spinner";
+} from "@geho/ui/components/field";
+import { Input } from "@geho/ui/components/input";
+import { toast } from "@geho/ui/components/sonner";
+import { Spinner } from "@geho/ui/components/spinner";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouter } from "@tanstack/react-router";

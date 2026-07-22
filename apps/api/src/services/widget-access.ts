@@ -1,4 +1,4 @@
-import type { DbClient } from "@heho/db";
+import type { DbClient } from "@geho/db";
 import { isAllowedWidgetOrigin } from "../lib/widget-origin";
 import { resolveEmbedKey } from "./embed-keys";
 

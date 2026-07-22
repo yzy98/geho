@@ -11,7 +11,7 @@ export function WidgetConnectingState() {
     >
       <Spinner className="size-5" />
       <div className="space-y-1">
-        <p className="font-medium text-sm">Connecting to Heho</p>
+        <p className="font-medium text-sm">Connecting to Geho</p>
         <p className="text-muted-foreground text-xs">
           Preparing a secure anonymous chat session…
         </p>

@@ -6,7 +6,7 @@ import {
   type SupportedChatModel,
   type SupportedChatModelIdFor,
   type SupportedChatModelProvider,
-} from "@heho/shared";
+} from "@geho/shared";
 import type { LanguageModel } from "ai";
 
 type ResolvedChatModelFor<TProvider extends SupportedChatModelProvider> = {

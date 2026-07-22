@@ -1,4 +1,4 @@
-import type { DbClient } from "@heho/db";
+import type { DbClient } from "@geho/db";
 import { createMiddleware } from "hono/factory";
 import type { WidgetSessionEnv } from "../context";
 import {

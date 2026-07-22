@@ -1,5 +1,5 @@
 {
-  "name": "heho",
+  "name": "geho",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -28,9 +28,9 @@
     "infra:restart": "docker compose down && docker compose up -d",
     "infra:ps": "docker compose ps",
     "infra:logs": "docker compose logs -f",
-    "infra:postgres": "docker compose exec postgres psql -U heho -d heho",
+    "infra:postgres": "docker compose exec postgres psql -U geho -d geho",
     "infra:redis": "docker compose exec redis redis-cli",
-    "infra:check": "docker compose exec postgres psql -U heho -d heho -c \"SELECT version();\" && docker compose exec postgres psql -U heho -d heho -c \"CREATE EXTENSION IF NOT EXISTS vector;\" && docker compose exec postgres psql -U heho -d heho -c \"\\dx\" && docker compose exec redis redis-cli ping",
+    "infra:check": "docker compose exec postgres psql -U geho -d geho -c \"SELECT version();\" && docker compose exec postgres psql -U geho -d geho -c \"CREATE EXTENSION IF NOT EXISTS vector;\" && docker compose exec postgres psql -U geho -d geho -c \"\\dx\" && docker compose exec redis redis-cli ping",
     "infra:reset:danger": "docker compose down -v",
     "prepare": "husky"
   },

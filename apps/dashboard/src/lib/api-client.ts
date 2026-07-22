@@ -1,3 +1,3 @@
-import { createApiClient } from "@heho/api-client/client";
+import { createApiClient } from "@geho/api-client/client";
 
 export const apiClient = createApiClient();

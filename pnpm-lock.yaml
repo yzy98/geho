@@ -74,16 +74,16 @@ importers:
       '@ai-sdk/openai':
         specifier: ^4.0.2
         version: 4.0.2(zod@4.4.3)
-      '@heho/auth':
+      '@geho/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@heho/db':
+      '@geho/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@heho/rag':
+      '@geho/rag':
         specifier: workspace:*
         version: link:../../packages/rag
-      '@heho/shared':
+      '@geho/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@hono/node-server':
@@ -123,16 +123,16 @@ importers:
 
   apps/dashboard:
     dependencies:
-      '@heho/api-client':
+      '@geho/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
-      '@heho/auth':
+      '@geho/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@heho/shared':
+      '@geho/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@heho/ui':
+      '@geho/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@tanstack/react-form':
@@ -188,13 +188,13 @@ importers:
         specifier: 'catalog:'
         version: 4.12.26
     devDependencies:
-      '@heho/api':
+      '@geho/api':
         specifier: workspace:*
         version: link:../../apps/api
 
   packages/auth:
     dependencies:
-      '@heho/db':
+      '@geho/db':
         specifier: workspace:*
         version: link:../db
       better-auth:
@@ -305,7 +305,7 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       lucide-react:
-        specifier: 'catalog:'
+        specifier: ^1.20.0
         version: 1.20.0(react@19.2.7)
       react:
         specifier: '>=18.2.0'

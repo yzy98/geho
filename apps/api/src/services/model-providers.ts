@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { DbClient } from "@heho/db";
-import { desc, eq } from "@heho/db/helper";
-import { modelProvider } from "@heho/db/schema";
+import type { DbClient } from "@geho/db";
+import { desc, eq } from "@geho/db/helper";
+import { modelProvider } from "@geho/db/schema";
 import { encryptApiKey } from "../lib/api-key-encryption";
 import type { CreateModelProviderInput } from "../schemas/model-providers";
 
