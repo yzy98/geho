@@ -62,6 +62,7 @@ jobs:
         run: pnpm --filter @geho/widget-react build
 
       - name: Inspect npm package
+        id: pack
         env:
           PACK_DIR: ${{ runner.temp }}/widget-react-pack
           RELEASE_TAG: ${{ github.event.release.tag_name }}
@@ -137,10 +138,12 @@ jobs:
           }
           NODE
 
+          echo "tarball_path=$PACK_DIR/$tarball_name" >> "$GITHUB_OUTPUT"
+
       - name: Publish package
         env:
           # Bootstrap 0.0.1 with the protected Environment secret. npm will use
           # OIDC after Trusted Publishing is configured and this line is removed.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        working-directory: packages/widget-react
-        run: npm publish --access public
+          TARBALL_PATH: ${{ steps.pack.outputs.tarball_path }}
+        run: npm publish "$TARBALL_PATH" --access public --ignore-scripts
