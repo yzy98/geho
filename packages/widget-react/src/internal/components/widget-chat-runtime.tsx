@@ -13,6 +13,8 @@ import type {
   WidgetUIMessage,
 } from "@/internal/widget-contract";
 import { createWidgetTransport } from "../widget-transport";
+import { Alert, AlertAction, AlertDescription } from "./ui/alert";
+import { Button } from "./ui/button";
 
 type WidgetChatRuntimeProps = {
   apiUrl: string;
@@ -42,11 +44,12 @@ export function WidgetChatRuntime({
     [apiUrl, embedKey, sessionId, sessionToken]
   );
 
-  const { messages, sendMessage, status, error } = useChat<WidgetUIMessage>({
-    id: sessionId,
-    messages: initialMessages,
-    transport,
-  });
+  const { messages, sendMessage, status, error, clearError } =
+    useChat<WidgetUIMessage>({
+      id: sessionId,
+      messages: initialMessages,
+      transport,
+    });
 
   const isBusy = status === "submitted" || status === "streaming";
   const canSend =
@@ -86,17 +89,20 @@ export function WidgetChatRuntime({
         {status === "submitted" ? (
           <p className="text-muted-foreground text-sm">Thinking…</p>
         ) : null}
-      </div>
 
-      {error ? (
-        <div
-          className="rounded-md border border-destructive/40 p-3 text-destructive text-sm"
-          role="alert"
-        >
-          The answer could not be completed. Message recovery will be added with
-          the resume phase.
-        </div>
-      ) : null}
+        {error ? (
+          <Alert className="max-w-sm" variant="warning">
+            <AlertDescription>
+              Couldn&apos;t complete the answer.
+            </AlertDescription>
+            <AlertAction>
+              <Button onClick={clearError} size="xs" variant="ghost">
+                Continue
+              </Button>
+            </AlertAction>
+          </Alert>
+        ) : null}
+      </div>
 
       <form className="w-full" onSubmit={submitMessage}>
         <InputGroup>
@@ -120,7 +126,7 @@ export function WidgetChatRuntime({
               size="icon-sm"
               type="submit"
             >
-              {isBusy ? <Spinner /> : <SendIcon data-icon="inline-end" />}
+              {isBusy ? <Spinner /> : <SendIcon />}
             </InputGroupButton>
           </InputGroupAddon>
         </InputGroup>

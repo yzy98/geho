@@ -1,5 +1,7 @@
-import { Button } from "@/internal/components/ui/button";
+import { AlertTriangleIcon } from "lucide-react";
 import { Spinner } from "@/internal/components/ui/spinner";
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "./ui/alert";
+import { Button } from "./ui/button";
 
 export function WidgetConnectingState() {
   return (
@@ -20,22 +22,11 @@ export function WidgetConnectingState() {
 
 export function WidgetConfigurationError({ message }: { message: string }) {
   return (
-    <div
-      className="m-auto max-w-sm space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4"
-      role="alert"
-    >
-      <div className="space-y-1">
-        <p className="font-medium text-destructive text-sm">
-          Widget configuration error
-        </p>
-        <p className="text-muted-foreground text-xs">{message}</p>
-      </div>
-      <ul className="list-disc space-y-1 pl-4 text-muted-foreground text-xs">
-        <li>Confirm that the Heho API URL is correct.</li>
-        <li>Confirm that the Embed Key is active.</li>
-        <li>Add this page origin to the Embed Key allowed domains.</li>
-      </ul>
-    </div>
+    <Alert className="m-auto max-w-sm" variant="warning">
+      <AlertTriangleIcon />
+      <AlertTitle>Widget configuration error</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   );
 }
 
@@ -47,28 +38,23 @@ export function WidgetConnectionError({
   onRetry: () => void;
 }) {
   return (
-    <div
-      className="m-auto max-w-sm space-y-3 rounded-lg border bg-muted/30 p-4"
-      role="alert"
-    >
-      <div className="space-y-1">
-        <p className="font-medium text-sm">Unable to connect</p>
-        <p className="text-muted-foreground text-xs">{message}</p>
-      </div>
-      <Button onClick={onRetry} size="sm" type="button" variant="outline">
-        Retry connection
-      </Button>
-    </div>
+    <Alert className="m-auto max-w-sm" variant="warning">
+      <AlertTriangleIcon />
+      <AlertTitle>Unable to connect</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+      <AlertAction>
+        <Button onClick={onRetry} size="xs" type="button">
+          Retry
+        </Button>
+      </AlertAction>
+    </Alert>
   );
 }
 
 export function WidgetStorageWarning({ message }: { message: string }) {
   return (
-    <div
-      className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs"
-      role="status"
-    >
-      {message}
-    </div>
+    <Alert className="max-w-sm" variant="warning">
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   );
 }
