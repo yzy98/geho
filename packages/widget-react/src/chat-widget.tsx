@@ -25,73 +25,31 @@ export type ChatWidgetProps = {
 
 export function ChatWidget({ apiUrl, embedKey }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const bootstrap = useWidgetBootstrap({
-    apiUrl,
-    embedKey,
-  });
+  const [hasOpened, setHasOpened] = useState(false);
+
+  const openChat = () => {
+    setHasOpened(true);
+    setIsOpen(true);
+  };
 
   return (
     <WidgetShadowRoot>
       <div className="pointer-events-none fixed inset-0 z-2147483000">
         <div className="pointer-events-auto absolute right-4 bottom-4">
-          {isOpen ? (
-            <Card className="h-[min(38rem,calc(100vh-6rem))] w-[min(24rem,calc(100vw-2rem))]">
-              <CardHeader className="border-b">
-                <CardTitle>Ask Heho</CardTitle>
-                <CardAction>
-                  <Button
-                    aria-label="Close chat"
-                    onClick={() => setIsOpen(false)}
-                    size="icon-sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <XIcon data-icon="inline-start" />
-                  </Button>
-                </CardAction>
-              </CardHeader>
+          {hasOpened ? (
+            <WidgetPanel
+              apiUrl={apiUrl}
+              embedKey={embedKey}
+              isOpen={isOpen}
+              onClose={() => setIsOpen(false)}
+            />
+          ) : null}
 
-              <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-                {bootstrap.status === "loading" ? (
-                  <WidgetConnectingState />
-                ) : null}
-
-                {bootstrap.status === "configuration-error" ? (
-                  <WidgetConfigurationError message={bootstrap.message} />
-                ) : null}
-
-                {bootstrap.status === "recoverable-error" ? (
-                  <WidgetConnectionError
-                    message={bootstrap.message}
-                    onRetry={bootstrap.retry}
-                  />
-                ) : null}
-
-                {bootstrap.status === "ready" ? (
-                  <>
-                    {bootstrap.storageWarning ? (
-                      <WidgetStorageWarning
-                        message={bootstrap.storageWarning}
-                      />
-                    ) : null}
-
-                    <WidgetChatRuntime
-                      apiUrl={bootstrap.normalizedApiUrl}
-                      embedKey={embedKey.trim()}
-                      initialMessages={bootstrap.messages}
-                      key={bootstrap.session.sessionId}
-                      sessionId={bootstrap.session.sessionId}
-                      sessionToken={bootstrap.session.sessionToken}
-                    />
-                  </>
-                ) : null}
-              </CardContent>
-            </Card>
-          ) : (
+          {isOpen ? null : (
             <Button
               aria-label="Open chat"
               className="rounded-full shadow-lg"
-              onClick={() => setIsOpen(true)}
+              onClick={openChat}
               size="icon-lg"
               type="button"
             >
@@ -101,5 +59,71 @@ export function ChatWidget({ apiUrl, embedKey }: ChatWidgetProps) {
         </div>
       </div>
     </WidgetShadowRoot>
+  );
+}
+
+type WidgetPanelProps = ChatWidgetProps & {
+  isOpen: boolean;
+  onClose: () => void;
+};
+
+function WidgetPanel({ apiUrl, embedKey, isOpen, onClose }: WidgetPanelProps) {
+  const bootstrap = useWidgetBootstrap({
+    apiUrl,
+    embedKey,
+  });
+
+  return (
+    <Card
+      className="h-[min(38rem,calc(100vh-6rem))] w-[min(24rem,calc(100vw-2rem))]"
+      hidden={!isOpen}
+    >
+      <CardHeader className="border-b">
+        <CardTitle>Ask Heho</CardTitle>
+        <CardAction>
+          <Button
+            aria-label="Close chat"
+            onClick={onClose}
+            size="icon-sm"
+            type="button"
+            variant="ghost"
+          >
+            <XIcon data-icon="inline-start" />
+          </Button>
+        </CardAction>
+      </CardHeader>
+
+      <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+        {bootstrap.status === "loading" ? <WidgetConnectingState /> : null}
+
+        {bootstrap.status === "configuration-error" ? (
+          <WidgetConfigurationError message={bootstrap.message} />
+        ) : null}
+
+        {bootstrap.status === "recoverable-error" ? (
+          <WidgetConnectionError
+            message={bootstrap.message}
+            onRetry={bootstrap.retry}
+          />
+        ) : null}
+
+        {bootstrap.status === "ready" ? (
+          <>
+            {bootstrap.storageWarning ? (
+              <WidgetStorageWarning message={bootstrap.storageWarning} />
+            ) : null}
+
+            <WidgetChatRuntime
+              apiUrl={bootstrap.normalizedApiUrl}
+              embedKey={embedKey.trim()}
+              initialMessages={bootstrap.messages}
+              key={bootstrap.session.sessionId}
+              sessionId={bootstrap.session.sessionId}
+              sessionToken={bootstrap.session.sessionToken}
+            />
+          </>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
