@@ -2,12 +2,30 @@
   "name": "@geho/widget-react",
   "version": "0.0.1",
   "description": "React chat widget SDK for Geho",
+  "keywords": [
+    "ai",
+    "chatbot",
+    "react",
+    "rag",
+    "self-hosted",
+    "website-widget"
+  ],
+  "homepage": "https://github.com/yzy98/geho#readme",
+  "bugs": {
+    "url": "https://github.com/yzy98/geho/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yzy98/geho.git",
+    "directory": "packages/widget-react"
+  },
   "type": "module",
   "private": false,
   "license": "LGPL-3.0-or-later",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "types": "./dist/index.d.ts",
   "exports": {
@@ -19,7 +37,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && tsc -p tsconfig.build.json",
+    "prepack": "pnpm run build",
     "typecheck": "tsc --noEmit"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "peerDependencies": {
     "react": ">=18.2.0",
