@@ -1,0 +1,149 @@
+name: Publish Widget React
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-widget-react-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish @geho/widget-react
+    runs-on: ubuntu-latest
+    environment: npm
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Set up npm
+        run: npm install --global npm@11.12.1
+
+      - name: Validate release tag
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          package_version="$(node -p "require('./packages/widget-react/package.json').version")"
+          expected_tag="widget-react-v${package_version}"
+
+          if [[ "$RELEASE_TAG" != "$expected_tag" ]]; then
+            echo "Release tag '$RELEASE_TAG' must equal '$expected_tag'." >&2
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck widget package
+        run: pnpm --filter @geho/widget-react typecheck
+
+      - name: Build widget package
+        run: pnpm --filter @geho/widget-react build
+
+      - name: Inspect npm package
+        id: pack
+        env:
+          PACK_DIR: ${{ runner.temp }}/widget-react-pack
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        working-directory: packages/widget-react
+        run: |
+          mkdir -p "$PACK_DIR"
+          npm pack \
+            --ignore-scripts \
+            --json \
+            --pack-destination "$PACK_DIR" \
+            > "$PACK_DIR/pack.json"
+
+          tarball_name="$(node -p "JSON.parse(require('fs').readFileSync(process.env.PACK_DIR + '/pack.json', 'utf8'))[0].filename")"
+          tar -xOf "$PACK_DIR/$tarball_name" package/package.json > "$PACK_DIR/package.json"
+
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+
+          const packDirectory = process.env.PACK_DIR;
+          const [packResult] = JSON.parse(
+            readFileSync(`${packDirectory}/pack.json`, "utf8")
+          );
+          const manifest = JSON.parse(
+            readFileSync(`${packDirectory}/package.json`, "utf8")
+          );
+          const expectedVersion = process.env.RELEASE_TAG.replace(
+            /^widget-react-v/,
+            ""
+          );
+
+          if (manifest.name !== "@geho/widget-react") {
+            throw new Error(`Unexpected package name: ${manifest.name}`);
+          }
+
+          if (manifest.version !== expectedVersion) {
+            throw new Error(
+              `Packed version ${manifest.version} does not match release ${expectedVersion}`
+            );
+          }
+
+          const requiredFiles = [
+            "LICENSE",
+            "README.md",
+            "dist/index.d.ts",
+            "dist/index.js",
+            "package.json",
+          ];
+          const packedFiles = new Set(packResult.files.map(({ path }) => path));
+          const missingFiles = requiredFiles.filter((path) => !packedFiles.has(path));
+
+          if (missingFiles.length > 0) {
+            throw new Error(
+              `Package is missing required files: ${missingFiles.join(", ")}`
+            );
+          }
+
+          const runtimeDependencyGroups = [
+            "dependencies",
+            "optionalDependencies",
+            "peerDependencies",
+          ];
+
+          for (const group of runtimeDependencyGroups) {
+            for (const [dependency, specifier] of Object.entries(
+              manifest[group] ?? {}
+            )) {
+              if (specifier.startsWith("catalog:")) {
+                throw new Error(
+                  `${group}.${dependency} contains unpublished specifier '${specifier}'`
+                );
+              }
+            }
+          }
+          NODE
+
+          echo "tarball_path=$PACK_DIR/$tarball_name" >> "$GITHUB_OUTPUT"
+
+      - name: Publish package
+        env:
+          # Bootstrap 0.0.1 with the protected Environment secret. npm will use
+          # OIDC after Trusted Publishing is configured and this line is removed.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TARBALL_PATH: ${{ steps.pack.outputs.tarball_path }}
+        run: npm publish "$TARBALL_PATH" --access public --ignore-scripts
