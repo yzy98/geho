@@ -1,5 +1,5 @@
-import type { AuthServer } from "@heho/auth/server";
-import type { DbClient } from "@heho/db";
+import type { AuthServer } from "@geho/auth/server";
+import type { DbClient } from "@geho/db";
 import { generateEmbeddings } from "./lib/embedding";
 import { createApiRoutes } from "./routes";
 import {

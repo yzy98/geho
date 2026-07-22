@@ -78,7 +78,7 @@ export function WidgetChatRuntime({
       >
         {messages.length === 0 ? (
           <p className="m-auto text-center text-muted-foreground text-sm">
-            Ask Heho a question.
+            Ask Geho a question.
           </p>
         ) : (
           messages.map((message) => (

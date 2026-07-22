@@ -6,7 +6,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@heho/ui/components/sidebar";
+} from "@geho/ui/components/sidebar";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useRouteContext } from "@tanstack/react-router";
 import { organizationQueryOptions } from "@/queries/organization";
@@ -26,7 +26,7 @@ export const DashboardSidebar = () => {
   const organizationName =
     organizationResult?.status === "ok"
       ? organizationResult.organization.name
-      : "Heho";
+      : "Geho";
 
   return (
     <Sidebar variant="inset">

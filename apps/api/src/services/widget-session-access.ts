@@ -1,6 +1,6 @@
-import type { DbClient } from "@heho/db";
-import { and, eq } from "@heho/db/helper";
-import { chatSession } from "@heho/db/schema";
+import type { DbClient } from "@geho/db";
+import { and, eq } from "@geho/db/helper";
+import { chatSession } from "@geho/db/schema";
 import { hashSessionToken, isSessionToken } from "../lib/session-token";
 import type { WidgetScope } from "./widget-access";
 

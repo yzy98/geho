@@ -1,7 +1,7 @@
 import {
   findSupportedChatModel,
   findSupportedEmbeddingModel,
-} from "@heho/shared";
+} from "@geho/shared";
 import { z } from "zod";
 
 const baseSchema = z

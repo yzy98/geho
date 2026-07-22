@@ -3,8 +3,8 @@ import {
   AlertAction,
   AlertDescription,
   AlertTitle,
-} from "@heho/ui/components/alert";
-import { Button, buttonVariants } from "@heho/ui/components/button";
+} from "@geho/ui/components/alert";
+import { Button, buttonVariants } from "@geho/ui/components/button";
 import {
   Card,
   CardContent,
@@ -12,8 +12,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@heho/ui/components/card";
-import { Skeleton } from "@heho/ui/components/skeleton";
+} from "@geho/ui/components/card";
+import { Skeleton } from "@geho/ui/components/skeleton";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   createFileRoute,

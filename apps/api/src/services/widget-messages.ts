@@ -1,13 +1,13 @@
 /** biome-ignore-all lint/complexity/noExcessiveCognitiveComplexity: ignore */
 import { randomUUID } from "node:crypto";
-import type { DbClient } from "@heho/db";
-import { and, asc, desc, eq } from "@heho/db/helper";
+import type { DbClient } from "@geho/db";
+import { and, asc, desc, eq } from "@geho/db/helper";
 import {
   chatMessage,
   chatSession,
   type RagTraceCitation,
   ragTrace,
-} from "@heho/db/schema";
+} from "@geho/db/schema";
 import { MAX_RAG_HISTORY_MESSAGES, type RagHistoryMessage } from "../lib/rag";
 import type { CompletedChatbotRagAnswer } from "./chatbot-rag-answer";
 import type { AuthorizedWidgetSession } from "./widget-session-access";

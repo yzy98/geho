@@ -19,7 +19,7 @@ export const createWidgetRoutes = ({
       "*",
       cors({
         origin: (origin) => origin,
-        allowHeaders: ["Content-Type", "Authorization", "X-Heho-Key"],
+        allowHeaders: ["Content-Type", "Authorization", "X-Geho-Key"],
         allowMethods: ["POST", "GET", "OPTIONS"],
         maxAge: 86_400,
         credentials: false,

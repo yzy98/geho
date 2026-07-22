@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { DbClient } from "@heho/db";
-import { type RagTraceCitation, ragTrace } from "@heho/db/schema";
+import type { DbClient } from "@geho/db";
+import { type RagTraceCitation, ragTrace } from "@geho/db/schema";
 import type { AskChatbotPreviewInput } from "../schemas/ask-preview";
 import { generateChatbotRagAnswer } from "./chatbot-rag-answer";
 

@@ -1,4 +1,4 @@
-import type { OrganizationPermissionRequest } from "@heho/auth/access-control";
+import type { OrganizationPermissionRequest } from "@geho/auth/access-control";
 import { queryOptions } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
 

@@ -1,3 +1,3 @@
-import { createAuthClient } from "@heho/auth/client";
+import { createAuthClient } from "@geho/auth/client";
 
 export const authClient = createAuthClient();

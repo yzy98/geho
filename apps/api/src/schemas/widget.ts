@@ -20,13 +20,13 @@ export const widgetAccessHeadersSchema = z
     origin: z.string().max(2048).refine(isSerializedWidgetOrigin, {
       error: "Origin must be a valid HTTP origin",
     }),
-    "x-heho-key": z.string().refine(isEmbedKey, {
-      error: "X-Heho-Key must be a valid embed key",
+    "x-geho-key": z.string().refine(isEmbedKey, {
+      error: "X-Geho-Key must be a valid embed key",
     }),
   })
   .transform((headers) => ({
     origin: headers.origin,
-    rawEmbedKey: headers["x-heho-key"],
+    rawEmbedKey: headers["x-geho-key"],
   }));
 
 export const widgetSessionAuthorizationHeadersSchema = z

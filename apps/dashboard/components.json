@@ -16,8 +16,8 @@
     "components": "@/components",
     "hooks": "@/hooks",
     "lib": "@/lib",
-    "utils": "@heho/ui/lib/utils",
-    "ui": "@heho/ui/components"
+    "utils": "@geho/ui/lib/utils",
+    "ui": "@geho/ui/components"
   },
   "menuColor": "default",
   "menuAccent": "subtle",

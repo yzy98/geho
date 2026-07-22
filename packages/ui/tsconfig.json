@@ -10,7 +10,7 @@
     "strict": true,
     "noEmit": true,
     "paths": {
-      "@heho/ui/*": ["./src/*"]
+      "@geho/ui/*": ["./src/*"]
     }
   },
   "include": ["."],

@@ -1,4 +1,4 @@
-import type { DbClient } from "@heho/db";
+import type { DbClient } from "@geho/db";
 import type { GenerateEmbeddings } from "../lib/embedding";
 import { processKnowledgeSource } from "./knowledge-source-processing";
 

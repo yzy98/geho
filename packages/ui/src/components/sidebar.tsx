@@ -2,24 +2,24 @@
 
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import { Button } from "@heho/ui/components/button";
-import { Input } from "@heho/ui/components/input";
-import { Separator } from "@heho/ui/components/separator";
+import { Button } from "@geho/ui/components/button";
+import { Input } from "@geho/ui/components/input";
+import { Separator } from "@geho/ui/components/separator";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@heho/ui/components/sheet";
-import { Skeleton } from "@heho/ui/components/skeleton";
+} from "@geho/ui/components/sheet";
+import { Skeleton } from "@geho/ui/components/skeleton";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@heho/ui/components/tooltip";
-import { useIsMobile } from "@heho/ui/hooks/use-mobile";
-import { cn } from "@heho/ui/lib/utils";
+} from "@geho/ui/components/tooltip";
+import { useIsMobile } from "@geho/ui/hooks/use-mobile";
+import { cn } from "@geho/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { PanelLeftIcon } from "lucide-react";
 import * as React from "react";

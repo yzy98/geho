@@ -1,16 +1,16 @@
-import { Alert, AlertDescription, AlertTitle } from "@heho/ui/components/alert";
-import { Badge } from "@heho/ui/components/badge";
-import { Button } from "@heho/ui/components/button";
+import { Alert, AlertDescription, AlertTitle } from "@geho/ui/components/alert";
+import { Badge } from "@geho/ui/components/badge";
+import { Button } from "@geho/ui/components/button";
 import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
   FieldSet,
-} from "@heho/ui/components/field";
-import { toast } from "@heho/ui/components/sonner";
-import { Spinner } from "@heho/ui/components/spinner";
-import { Textarea } from "@heho/ui/components/textarea";
+} from "@geho/ui/components/field";
+import { toast } from "@geho/ui/components/sonner";
+import { Spinner } from "@geho/ui/components/spinner";
+import { Textarea } from "@geho/ui/components/textarea";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { AlertTriangleIcon, BotMessageSquareIcon } from "lucide-react";

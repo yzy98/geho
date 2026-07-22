@@ -1,5 +1,5 @@
-import { ResponsiveDialog } from "@heho/ui/components/responsive-dialog";
-import { useIsMobile } from "@heho/ui/hooks/use-mobile";
+import { ResponsiveDialog } from "@geho/ui/components/responsive-dialog";
+import { useIsMobile } from "@geho/ui/hooks/use-mobile";
 import { ChatbotAskPreviewForm } from "@/components/forms/chatbot-ask-preview-form";
 import type { Chatbot } from "@/queries/chatbot";
 

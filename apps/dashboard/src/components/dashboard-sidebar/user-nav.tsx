@@ -1,9 +1,9 @@
-import type { AuthClient } from "@heho/auth/client";
+import type { AuthClient } from "@geho/auth/client";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@heho/ui/components/avatar";
+} from "@geho/ui/components/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,14 +12,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@heho/ui/components/dropdown-menu";
+} from "@geho/ui/components/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@heho/ui/components/sidebar";
-import { Spinner } from "@heho/ui/components/spinner";
+} from "@geho/ui/components/sidebar";
+import { Spinner } from "@geho/ui/components/spinner";
 import {
   EllipsisVerticalIcon,
   LogOutIcon,

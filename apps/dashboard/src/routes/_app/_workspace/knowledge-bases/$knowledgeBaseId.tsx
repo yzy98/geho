@@ -1,15 +1,15 @@
-import { Alert, AlertDescription, AlertTitle } from "@heho/ui/components/alert";
-import { Badge } from "@heho/ui/components/badge";
-import { Button } from "@heho/ui/components/button";
+import { Alert, AlertDescription, AlertTitle } from "@geho/ui/components/alert";
+import { Badge } from "@geho/ui/components/badge";
+import { Button } from "@geho/ui/components/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@heho/ui/components/card";
-import { Separator } from "@heho/ui/components/separator";
-import { Skeleton } from "@heho/ui/components/skeleton";
+} from "@geho/ui/components/card";
+import { Separator } from "@geho/ui/components/separator";
+import { Skeleton } from "@geho/ui/components/skeleton";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, linkOptions } from "@tanstack/react-router";
 import {

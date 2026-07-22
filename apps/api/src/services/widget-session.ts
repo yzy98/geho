@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { DbClient } from "@heho/db";
-import { chatSession } from "@heho/db/schema";
+import type { DbClient } from "@geho/db";
+import { chatSession } from "@geho/db/schema";
 import { generateSessionToken, hashSessionToken } from "../lib/session-token";
 import type { WidgetScope } from "./widget-access";
 

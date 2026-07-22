@@ -1,4 +1,4 @@
-import type { AuthServer } from "@heho/auth/server";
+import type { AuthServer } from "@geho/auth/server";
 import type { WidgetScope } from "./services/widget-access";
 import type { AuthorizedWidgetSession } from "./services/widget-session-access";
 

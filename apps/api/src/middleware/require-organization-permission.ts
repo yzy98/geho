@@ -1,5 +1,5 @@
-import type { OrganizationPermissionRequest } from "@heho/auth/access-control";
-import type { AuthServer } from "@heho/auth/server";
+import type { OrganizationPermissionRequest } from "@geho/auth/access-control";
+import type { AuthServer } from "@geho/auth/server";
 import { createMiddleware } from "hono/factory";
 import type { AppEnv } from "../context";
 

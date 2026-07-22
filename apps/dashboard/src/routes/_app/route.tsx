@@ -1,4 +1,4 @@
-import { SidebarInset, SidebarProvider } from "@heho/ui/components/sidebar";
+import { SidebarInset, SidebarProvider } from "@geho/ui/components/sidebar";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";

@@ -83,7 +83,7 @@ export function createWidgetTransport({
     credentials: "omit",
 
     headers: {
-      "X-Heho-Key": embedKey,
+      "X-Geho-Key": embedKey,
       Authorization: `Bearer ${sessionToken}`,
     },
 

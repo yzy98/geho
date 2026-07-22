@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { RagTraceCitation } from "@heho/db";
+import type { RagTraceCitation } from "@geho/db";
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,

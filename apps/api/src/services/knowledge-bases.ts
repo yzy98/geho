@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { DbClient } from "@heho/db";
-import { and, desc, eq } from "@heho/db/helper";
-import { knowledgeBase, modelProvider } from "@heho/db/schema";
+import type { DbClient } from "@geho/db";
+import { and, desc, eq } from "@geho/db/helper";
+import { knowledgeBase, modelProvider } from "@geho/db/schema";
 import type { CreateKnowledgeBaseInput } from "../schemas/knowledge-bases";
 
 export type KnowledgeBaseDto = Omit<

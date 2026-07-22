@@ -13,11 +13,11 @@
   "iconLibrary": "lucide",
   "rtl": false,
   "aliases": {
-    "components": "@heho/ui/components",
-    "utils": "@heho/ui/lib/utils",
-    "hooks": "@heho/ui/hooks",
-    "lib": "@heho/ui/lib",
-    "ui": "@heho/ui/components"
+    "components": "@geho/ui/components",
+    "utils": "@geho/ui/lib/utils",
+    "hooks": "@geho/ui/hooks",
+    "lib": "@geho/ui/lib",
+    "ui": "@geho/ui/components"
   },
   "menuColor": "default",
   "menuAccent": "subtle",
