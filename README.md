@@ -136,7 +136,7 @@ Why this stack:
 - S3-compatible storage lets teams use local MinIO, AWS S3, Cloudflare R2, Tigris, or similar storage.
 - A vanilla widget plus React wrapper makes the chatbot usable on almost any website.
 
-## Suggested Monorepo Structure
+## Monorepo Structure
 
 ```txt
 apps/
@@ -145,12 +145,12 @@ apps/
   worker         # Ingestion, embedding, indexing jobs
 
 packages/
+  api-client     # Hono api client
+  auth           # Better Auth server and client
   db             # Drizzle schema and migrations
   ai             # Chat and embedding model provider adapters
   rag            # Chunking, retrieval, prompt assembly, citations
-  widget         # Vanilla floating chatbot widget
-  react          # React ChatbotWidget wrapper
-  sdk            # Typed API client
+  widget-react   # React ChatWidget wrapper
   ui             # Shared UI components
 ```
 
@@ -442,7 +442,7 @@ import { ChatWidget } from "@geho/widget-react";
 
 export function App() {
   return (
-    <ChatbotWidget
+    <ChatWidget
       apiUrl="xxxx" 
       embedKey="pk_xxx"
     />
