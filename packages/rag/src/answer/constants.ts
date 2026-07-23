@@ -1,0 +1,1 @@
+export const MAX_RAG_HISTORY_MESSAGES = 20;
