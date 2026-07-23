@@ -7,13 +7,12 @@ import {
   type RagTraceCitation,
   type RagTraceRetrievedChunk,
 } from "@geho/db/schema";
-import { decryptApiKey } from "../lib/api-key-encryption";
 import {
   generateRagAnswer,
   type RagHistoryMessage,
   streamRagAnswer,
-} from "../lib/rag";
-import type { RagChunk } from "../lib/retrieval";
+} from "@geho/rag";
+import { decryptApiKey } from "../lib/api-key-encryption";
 import { retrieveKnowledgeChunks } from "./knowledge-retrieval";
 
 export type GenerateChatbotRagAnswerOptions = {
@@ -90,41 +89,6 @@ const getChatbotForRagAnswer = async ({
   return rows[0] ?? null;
 };
 
-const resolveCitations = ({
-  citedChunkIds,
-  chunks,
-}: {
-  citedChunkIds: string[];
-  chunks: RagChunk[];
-}): RagTraceCitation[] => {
-  const chunksById = new Map(chunks.map((chunk) => [chunk.chunkId, chunk]));
-  const seen = new Set<string>();
-
-  return citedChunkIds.flatMap((chunkId) => {
-    if (seen.has(chunkId)) {
-      return [];
-    }
-
-    const chunk = chunksById.get(chunkId);
-
-    if (!chunk) {
-      return [];
-    }
-
-    seen.add(chunkId);
-
-    return [
-      {
-        chunkId: chunk.chunkId,
-        sourceId: chunk.sourceId,
-        sourceTitle: chunk.sourceTitle,
-        chunkIndex: chunk.chunkIndex,
-        similarity: chunk.similarity,
-      },
-    ];
-  });
-};
-
 export const generateChatbotRagAnswer: GenerateChatbotRagAnswer = async ({
   db,
   encryptionKey,
@@ -192,14 +156,11 @@ export const generateChatbotRagAnswer: GenerateChatbotRagAnswer = async ({
 
     return {
       status: "answered",
-      answer: generated.answer.answer,
-      citations: resolveCitations({
-        citedChunkIds: generated.answer.citedChunkIds,
-        chunks: retrievalResult.chunks,
-      }),
+      answer: generated.answer,
+      citations: generated.citations,
+      promptPreview: generated.promptPreview,
       knowledgeBaseId: matchedChatbot.chatbot.knowledgeBaseId,
       modelId: matchedChatbot.chatProvider.modelId,
-      promptPreview: generated.promptPreview,
       retrievedChunks: retrievalResult.chunks,
       latencyMs: Date.now() - startedAt,
     };
@@ -235,7 +196,7 @@ export type CreateChatbotRagAnswerStreamResult =
       status: "answered";
       partialOutputStream: ReturnType<
         typeof streamRagAnswer
-      >["result"]["partialOutputStream"];
+      >["partialOutputStream"];
       complete: () => Promise<CompletedChatbotRagAnswer>;
     }
   | {
@@ -317,19 +278,16 @@ export const createChatbotRagAnswerStream = async ({
 
     return {
       status: "answered",
-      partialOutputStream: streamed.result.partialOutputStream,
+      partialOutputStream: streamed.partialOutputStream,
       complete: async () => {
-        const output = await streamed.result.output;
+        const result = await streamed.complete();
 
         return {
-          answer: output.answer,
-          citations: resolveCitations({
-            citedChunkIds: output.citedChunkIds,
-            chunks: retrievalResult.chunks,
-          }),
+          answer: result.answer,
+          citations: result.citations,
+          promptPreview: result.promptPreview,
           knowledgeBaseId: matchedChatbot.chatbot.knowledgeBaseId,
           modelId: matchedChatbot.chatProvider.modelId,
-          promptPreview: streamed.promptPreview,
           retrievedChunks: retrievalResult.chunks,
           latencyMs: Date.now() - startedAt,
         };
