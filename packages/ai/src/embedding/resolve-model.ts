@@ -6,11 +6,10 @@ import {
   type SupportedEmbeddingModelIdFor,
   type SupportedEmbeddingModelProvider,
 } from "@geho/shared";
-import { type EmbeddingModel, embed, embedMany } from "ai";
+import type { EmbeddingModel } from "ai";
+import type { AiModelConfig } from "../model-config";
+import { EMBEDDING_DIMENSIONS } from "./constants";
 import { UnsupportedEmbeddingModelError } from "./errors";
-import type { AiModelConfig, EmbeddingModelClient } from "./types";
-
-export const EMBEDDING_DIMENSIONS = 1536;
 
 type ResolvedEmbeddingModelFor<
   TProvider extends SupportedEmbeddingModelProvider,
@@ -98,7 +97,7 @@ const resolveSupportedEmbeddingModel = ({
   }
 };
 
-const resolveEmbeddingModel = (
+export const resolveEmbeddingModel = (
   config: AiModelConfig
 ): ResolvedEmbeddingModel => {
   const model = findSupportedEmbeddingModel({
@@ -130,7 +129,7 @@ const openAIQueryEmbeddingOptions = {
   } satisfies OpenAIEmbeddingModelOptions,
 };
 
-const getQueryEmbeddingOptions = (
+export const getQueryEmbeddingOptions = (
   provider: ResolvedEmbeddingModel["provider"]
 ) => {
   switch (provider) {
@@ -156,7 +155,7 @@ const openAIDocumentEmbeddingOptions = {
   } satisfies OpenAIEmbeddingModelOptions,
 };
 
-const getDocumentEmbeddingOptions = (
+export const getDocumentEmbeddingOptions = (
   provider: ResolvedEmbeddingModel["provider"]
 ) => {
   switch (provider) {
@@ -167,38 +166,4 @@ const getDocumentEmbeddingOptions = (
     default:
       return assertUnsupportedProvider(provider);
   }
-};
-
-export const createEmbeddingModel = (
-  config: AiModelConfig
-): EmbeddingModelClient => {
-  const resolved = resolveEmbeddingModel(config);
-
-  return {
-    async embedQuery(value, options) {
-      const { embedding } = await embed({
-        model: resolved.model,
-        value,
-        providerOptions: getQueryEmbeddingOptions(resolved.provider),
-        ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {}),
-      });
-
-      return embedding;
-    },
-
-    async embedDocuments(values, options) {
-      if (values.length === 0) {
-        return [];
-      }
-
-      const { embeddings } = await embedMany({
-        model: resolved.model,
-        values: [...values],
-        providerOptions: getDocumentEmbeddingOptions(resolved.provider),
-        ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {}),
-      });
-
-      return embeddings;
-    },
-  };
 };

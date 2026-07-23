@@ -1,9 +1,4 @@
-export type AiModelConfig = {
-  apiKey: string;
-  provider: string;
-  modelId: string;
-  baseURL?: string | null;
-};
+import type { AiModelConfig } from "../model-config";
 
 export type AiCallOptions = {
   abortSignal?: AbortSignal;

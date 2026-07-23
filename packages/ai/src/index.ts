@@ -1,15 +1,20 @@
-export { createChatModel } from "./chat";
+export { createChatModel } from "./chat/create-model";
+export { UnsupportedChatModelError } from "./chat/errors";
 
-export { createEmbeddingModel, EMBEDDING_DIMENSIONS } from "./embedding";
-
-export {
-  UnsupportedChatModelError,
-  UnsupportedEmbeddingModelError,
-} from "./errors";
-
+export { EMBEDDING_DIMENSIONS } from "./embedding/constants";
+export { createEmbeddingModel } from "./embedding/create-client";
+export { UnsupportedEmbeddingModelError } from "./embedding/errors";
 export type {
   AiCallOptions,
-  AiModelConfig,
   CreateEmbeddingModel,
   EmbeddingModelClient,
-} from "./types";
+} from "./embedding/types";
+
+export type { AiModelConfig } from "./model-config";
+
+export { generateRagAnswer } from "./rag-answer/generate";
+export { streamRagAnswer } from "./rag-answer/stream";
+export type {
+  RagAnswerOptions,
+  RagAnswerStream,
+} from "./rag-answer/types";

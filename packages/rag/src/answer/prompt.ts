@@ -1,6 +1,10 @@
-import type { ModelMessage } from "ai";
 import { MAX_RAG_HISTORY_MESSAGES } from "./constants";
-import type { RagContextChunk, RagHistoryMessage } from "./types";
+import type {
+  PreparedRagPrompt,
+  RagContextChunk,
+  RagHistoryMessage,
+  RagPromptMessage,
+} from "./types";
 
 export const buildRagContext = (chunks: readonly RagContextChunk[]): string => {
   if (chunks.length === 0) {
@@ -50,9 +54,9 @@ export const buildRagMessages = ({
 }: {
   history: readonly RagHistoryMessage[];
   prompt: string;
-}): ModelMessage[] => [
+}): RagPromptMessage[] => [
   ...history.slice(-MAX_RAG_HISTORY_MESSAGES).map(
-    (message): ModelMessage => ({
+    (message): RagPromptMessage => ({
       role: message.role,
       content: message.content,
     })
@@ -85,17 +89,6 @@ ${historyPreview}
 
 CURRENT USER REQUEST:
 ${prompt}`;
-};
-
-type PreparedRagPrompt = {
-  modelInput:
-    | {
-        prompt: string;
-      }
-    | {
-        messages: ModelMessage[];
-      };
-  promptPreview: string;
 };
 
 export const prepareRagPrompt = ({

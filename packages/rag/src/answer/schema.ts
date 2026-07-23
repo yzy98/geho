@@ -1,4 +1,3 @@
-import { Output } from "ai";
 import z from "zod";
 
 export const ragAnswerSchema = z
@@ -9,9 +8,3 @@ export const ragAnswerSchema = z
   .strict();
 
 export type StructuredRagAnswer = z.infer<typeof ragAnswerSchema>;
-
-export const ragAnswerOutput = Output.object({
-  schema: ragAnswerSchema,
-  name: "citedAnswer",
-  description: "An answer with citations to retrieved chunk IDs.",
-});

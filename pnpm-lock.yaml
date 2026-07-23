@@ -9,9 +9,6 @@ catalogs:
     ai:
       specifier: ^7.0.30
       version: 7.0.30
-    zod:
-      specifier: ^4.4.3
-      version: 4.4.3
 
 importers:
 
@@ -163,15 +160,15 @@ importers:
       '@ai-sdk/openai':
         specifier: ^4.0.2
         version: 4.0.2(zod@4.4.3)
+      '@geho/rag':
+        specifier: workspace:*
+        version: link:../rag
       '@geho/shared':
         specifier: workspace:*
         version: link:../shared
       ai:
         specifier: 'catalog:'
         version: 7.0.30(zod@4.4.3)
-      zod:
-        specifier: 'catalog:'
-        version: 4.4.3
 
   packages/api-client:
     dependencies:
@@ -219,9 +216,6 @@ importers:
       '@langchain/textsplitters':
         specifier: ^1.0.1
         version: 1.0.1(@langchain/core@1.2.1)
-      ai:
-        specifier: 'catalog:'
-        version: 7.0.30(zod@4.4.3)
       zod:
         specifier: 'catalog:'
         version: 4.4.3

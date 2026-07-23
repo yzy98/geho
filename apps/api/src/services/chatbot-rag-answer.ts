@@ -1,4 +1,9 @@
-import { createChatModel } from "@geho/ai";
+import {
+  createChatModel,
+  generateRagAnswer,
+  type RagAnswerStream,
+  streamRagAnswer,
+} from "@geho/ai";
 import type { DbClient } from "@geho/db";
 import { and, eq } from "@geho/db/helper";
 import {
@@ -7,11 +12,7 @@ import {
   type RagTraceCitation,
   type RagTraceRetrievedChunk,
 } from "@geho/db/schema";
-import {
-  generateRagAnswer,
-  type RagHistoryMessage,
-  streamRagAnswer,
-} from "@geho/rag";
+import type { RagHistoryMessage } from "@geho/rag";
 import { decryptApiKey } from "../lib/api-key-encryption";
 import { retrieveKnowledgeChunks } from "./knowledge-retrieval";
 
@@ -194,9 +195,7 @@ export type CompletedChatbotRagAnswer = {
 export type CreateChatbotRagAnswerStreamResult =
   | {
       status: "answered";
-      partialOutputStream: ReturnType<
-        typeof streamRagAnswer
-      >["partialOutputStream"];
+      partialOutputStream: RagAnswerStream["partialOutputStream"];
       complete: () => Promise<CompletedChatbotRagAnswer>;
     }
   | {

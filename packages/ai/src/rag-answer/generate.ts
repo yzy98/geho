@@ -1,7 +1,6 @@
+import { prepareRagPrompt, resolveCitations } from "@geho/rag";
 import { generateText } from "ai";
-import { resolveCitations } from "./citations";
-import { prepareRagPrompt } from "./prompt";
-import { ragAnswerOutput } from "./schema";
+import { ragAnswerOutput } from "./output";
 import type { RagAnswerOptions, RagAnswerResult } from "./types";
 
 export const generateRagAnswer = async ({

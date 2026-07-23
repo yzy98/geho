@@ -1,7 +1,6 @@
+import { prepareRagPrompt, resolveCitations } from "@geho/rag";
 import { streamText } from "ai";
-import { resolveCitations } from "./citations";
-import { prepareRagPrompt } from "./prompt";
-import { ragAnswerOutput } from "./schema";
+import { ragAnswerOutput } from "./output";
 import type { RagAnswerOptions, RagAnswerStream } from "./types";
 
 export const streamRagAnswer = ({

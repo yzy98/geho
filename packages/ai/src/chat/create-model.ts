@@ -3,8 +3,8 @@ import { createDeepSeek } from "@ai-sdk/deepseek";
 import { createOpenAI } from "@ai-sdk/openai";
 import { findSupportedChatModel } from "@geho/shared";
 import type { LanguageModel } from "ai";
+import type { AiModelConfig } from "../model-config";
 import { UnsupportedChatModelError } from "./errors";
-import type { AiModelConfig } from "./types";
 
 const assertNever = (provider: never): never => {
   throw new Error(`Unsupported provider: ${provider}`);

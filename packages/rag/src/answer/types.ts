@@ -1,10 +1,14 @@
-import type { AsyncIterableStream, DeepPartial, LanguageModel } from "ai";
-import type { StructuredRagAnswer } from "./schema";
+export type RagPromptMessage =
+  | {
+      role: "user";
+      content: string;
+    }
+  | {
+      role: "assistant";
+      content: string;
+    };
 
-export type RagHistoryMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
+export type RagHistoryMessage = RagPromptMessage;
 
 export type RagContextChunk = {
   chunkId: string;
@@ -23,22 +27,15 @@ export type RagCitation = {
   similarity: number;
 };
 
-export type RagAnswerOptions = {
-  model: LanguageModel;
-  instructions: string;
-  question: string;
-  history: readonly RagHistoryMessage[];
-  chunks: readonly RagContextChunk[];
-  abortSignal?: AbortSignal;
-};
+export type RagModelInput =
+  | {
+      prompt: string;
+    }
+  | {
+      messages: RagPromptMessage[];
+    };
 
-export type RagAnswerResult = {
-  answer: string;
-  citations: RagCitation[];
+export type PreparedRagPrompt = {
+  modelInput: RagModelInput;
   promptPreview: string;
-};
-
-export type RagAnswerStream = {
-  partialOutputStream: AsyncIterableStream<DeepPartial<StructuredRagAnswer>>;
-  complete: () => Promise<RagAnswerResult>;
 };
