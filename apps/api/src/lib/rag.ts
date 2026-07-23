@@ -1,6 +1,11 @@
-import { generateText, type ModelMessage, Output, streamText } from "ai";
+import {
+  generateText,
+  type LanguageModel,
+  type ModelMessage,
+  Output,
+  streamText,
+} from "ai";
 import z from "zod";
-import type { ResolvedChatModel } from "./chat-models";
 import type { RagChunk } from "./retrieval";
 
 export const MAX_RAG_HISTORY_MESSAGES = 20;
@@ -105,7 +110,7 @@ const ragAnswerSchema = z
 type RagAnswer = z.infer<typeof ragAnswerSchema>;
 
 type GenerateRagAnswer = (options: {
-  model: ResolvedChatModel;
+  model: LanguageModel;
   instructions: string;
   question: string;
   history: RagHistoryMessage[];
@@ -144,7 +149,7 @@ export const generateRagAnswer: GenerateRagAnswer = async ({
         };
 
   const result = await generateText({
-    model: model.model,
+    model,
     instructions,
     ...promptInput,
     output: Output.object({
@@ -166,7 +171,7 @@ export const generateRagAnswer: GenerateRagAnswer = async ({
 };
 
 type StreamRagAnswerOptions = {
-  model: ResolvedChatModel;
+  model: LanguageModel;
   instructions: string;
   question: string;
   history: RagHistoryMessage[];
@@ -204,7 +209,7 @@ export const streamRagAnswer = ({
         };
 
   const result = streamText({
-    model: model.model,
+    model,
     instructions,
     ...promptInput,
     output: Output.object({

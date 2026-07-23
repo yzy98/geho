@@ -10,5 +10,6 @@ export {
 export type {
   AiCallOptions,
   AiModelConfig,
+  CreateEmbeddingModel,
   EmbeddingModelClient,
 } from "./types";

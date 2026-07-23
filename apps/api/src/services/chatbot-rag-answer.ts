@@ -1,3 +1,4 @@
+import { createChatModel } from "@geho/ai";
 import type { DbClient } from "@geho/db";
 import { and, eq } from "@geho/db/helper";
 import {
@@ -7,7 +8,6 @@ import {
   type RagTraceRetrievedChunk,
 } from "@geho/db/schema";
 import { decryptApiKey } from "../lib/api-key-encryption";
-import { resolveChatModel } from "../lib/chat-models";
 import {
   generateRagAnswer,
   type RagHistoryMessage,
@@ -173,12 +173,12 @@ export const generateChatbotRagAnswer: GenerateChatbotRagAnswer = async ({
       encryptionKey,
     });
 
-    // Resolve the chat model
-    const model = resolveChatModel({
+    // Create the chat model
+    const model = createChatModel({
       apiKey,
       modelId: matchedChatbot.chatProvider.modelId,
       provider: matchedChatbot.chatProvider.provider,
-      baseUrl: matchedChatbot.chatProvider.baseUrl,
+      baseURL: matchedChatbot.chatProvider.baseUrl,
     });
 
     // Generate rag answer
@@ -298,12 +298,12 @@ export const createChatbotRagAnswerStream = async ({
       encryptionKey,
     });
 
-    // Resolve the chat model
-    const model = resolveChatModel({
+    // Create the chat model
+    const model = createChatModel({
       apiKey,
       modelId: matchedChatbot.chatProvider.modelId,
       provider: matchedChatbot.chatProvider.provider,
-      baseUrl: matchedChatbot.chatProvider.baseUrl,
+      baseURL: matchedChatbot.chatProvider.baseUrl,
     });
 
     const streamed = streamRagAnswer({

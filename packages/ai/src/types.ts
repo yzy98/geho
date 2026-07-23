@@ -16,3 +16,7 @@ export type EmbeddingModelClient = {
     options?: AiCallOptions
   ): Promise<number[][]>;
 };
+
+export type CreateEmbeddingModel = (
+  config: AiModelConfig
+) => EmbeddingModelClient;

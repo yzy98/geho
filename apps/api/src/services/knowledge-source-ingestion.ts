@@ -1,5 +1,5 @@
+import type { CreateEmbeddingModel } from "@geho/ai";
 import type { DbClient } from "@geho/db";
-import type { GenerateEmbeddings } from "../lib/embedding";
 import { processKnowledgeSource } from "./knowledge-source-processing";
 
 export type StartKnowledgeSourceIngestion = (options: {
@@ -11,12 +11,12 @@ export const createInProcessKnowledgeSourceIngestionStarter =
   ({
     db,
     encryptionKey,
-    generateEmbeddings,
+    createEmbeddingModel,
     onError = console.error,
   }: {
     db: DbClient;
     encryptionKey: Uint8Array;
-    generateEmbeddings: GenerateEmbeddings;
+    createEmbeddingModel: CreateEmbeddingModel;
     onError?: (error: unknown) => void;
   }): StartKnowledgeSourceIngestion =>
   ({ sourceId, organizationId }) => {
@@ -24,7 +24,7 @@ export const createInProcessKnowledgeSourceIngestionStarter =
       processKnowledgeSource({
         db,
         encryptionKey,
-        generateEmbeddings,
+        createEmbeddingModel,
         sourceId,
         organizationId,
       }).catch(onError);
