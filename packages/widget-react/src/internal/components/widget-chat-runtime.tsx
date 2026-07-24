@@ -8,10 +8,7 @@ import {
   InputGroupTextarea,
 } from "@/internal/components/ui/input-group";
 import { Spinner } from "@/internal/components/ui/spinner";
-import type {
-  WidgetCitation,
-  WidgetUIMessage,
-} from "@/internal/widget-contract";
+import type { WidgetUIMessage } from "@/internal/widget-contract";
 import { WidgetApiError } from "../widget-client";
 import { createWidgetTransport } from "../widget-transport";
 import { Alert, AlertAction, AlertDescription } from "./ui/alert";
@@ -188,25 +185,12 @@ function WidgetMessage({ message }: { message: WidgetUIMessage }) {
   }
 
   const answer = getAssistantAnswer(message);
-  const citations = getAssistantCitations(message);
 
   return (
     <div className="mr-auto max-w-[90%] space-y-2">
       <div className="rounded-xl bg-muted px-3 py-2">
         {answer || <span className="text-muted-foreground">Generating…</span>}
       </div>
-
-      {citations.length > 0 ? (
-        <ol className="space-y-1 text-muted-foreground text-xs">
-          {citations.map((citation) => (
-            <li key={citation.chunkId}>
-              {citation.sourceTitle}
-              {" · chunk "}
-              {citation.chunkIndex}
-            </li>
-          ))}
-        </ol>
-      ) : null}
     </div>
   );
 }
@@ -224,12 +208,4 @@ function getAssistantAnswer(message: WidgetUIMessage): string {
   );
 
   return part?.data.text ?? "";
-}
-
-function getAssistantCitations(message: WidgetUIMessage): WidgetCitation[] {
-  const part = message.parts.find(
-    (candidate) => candidate.type === "data-citations"
-  );
-
-  return part?.data ?? [];
 }

@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import type { RagTraceCitation } from "@geho/db";
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -39,7 +38,6 @@ type WidgetUIMessage = UIMessage<
     answer: {
       text: string;
     };
-    citations: RagTraceCitation[];
   }
 >;
 
@@ -139,12 +137,6 @@ const streamWidgetRagResponse = ({
           data: {
             text: finalized.assistantMessage.content,
           },
-        });
-
-        writer.write({
-          type: "data-citations",
-          id: "citations",
-          data: finalized.assistantMessage.citations,
         });
 
         writer.write({

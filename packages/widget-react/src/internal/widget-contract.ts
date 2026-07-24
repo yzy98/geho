@@ -1,13 +1,5 @@
 import type { UIMessage } from "ai";
 
-export type WidgetCitation = {
-  chunkId: string;
-  sourceId: string;
-  sourceTitle: string;
-  chunkIndex: number;
-  similarity: number;
-};
-
 export type WidgetUIMessage = UIMessage<
   {
     createdAt?: string;
@@ -17,7 +9,6 @@ export type WidgetUIMessage = UIMessage<
     answer: {
       text: string;
     };
-    citations: WidgetCitation[];
   }
 >;
 
@@ -33,7 +24,6 @@ export type WidgetMessageDto =
       role: "assistant";
       content: string;
       createdAt: string;
-      citations: WidgetCitation[];
     };
 
 export type CreateWidgetSessionResponse = {
@@ -83,11 +73,6 @@ export function mapWidgetHistory(
           data: {
             text: message.content,
           },
-        },
-        {
-          type: "data-citations",
-          id: "citations",
-          data: message.citations,
         },
       ],
     };
