@@ -90,8 +90,11 @@ export function createWidgetTransport({
     fetch: streamingFetch,
 
     prepareSendMessagesRequest: ({ messages, trigger }) => {
-      if (trigger !== "submit-message") {
-        throw new Error(`Unsupported Widget message trigger: ${trigger}`);
+      if (trigger === "regenerate-message") {
+        return {
+          api: `${messagesUrl}/resume`,
+          body: {},
+        };
       }
 
       return {

@@ -1,6 +1,6 @@
 import { useChat } from "@ai-sdk/react";
 import { SendIcon } from "lucide-react";
-import { type SubmitEvent, useMemo, useState } from "react";
+import { type SubmitEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   InputGroup,
   InputGroupAddon,
@@ -12,6 +12,7 @@ import type {
   WidgetCitation,
   WidgetUIMessage,
 } from "@/internal/widget-contract";
+import { WidgetApiError } from "../widget-client";
 import { createWidgetTransport } from "../widget-transport";
 import { Alert, AlertAction, AlertDescription } from "./ui/alert";
 import { Button } from "./ui/button";
@@ -22,6 +23,8 @@ type WidgetChatRuntimeProps = {
   sessionId: string;
   sessionToken: string;
   initialMessages: WidgetUIMessage[];
+  needsResume: boolean;
+  onRefreshHistory: () => void;
 };
 
 export function WidgetChatRuntime({
@@ -30,8 +33,13 @@ export function WidgetChatRuntime({
   sessionId,
   sessionToken,
   initialMessages,
+  needsResume,
+  onRefreshHistory,
 }: WidgetChatRuntimeProps) {
   const [input, setInput] = useState("");
+
+  const didAutoResume = useRef(false);
+  const didRequestHistoryRefresh = useRef(false);
 
   const transport = useMemo(
     () =>
@@ -44,7 +52,7 @@ export function WidgetChatRuntime({
     [apiUrl, embedKey, sessionId, sessionToken]
   );
 
-  const { messages, sendMessage, status, error, clearError } =
+  const { messages, sendMessage, regenerate, status, error, clearError } =
     useChat<WidgetUIMessage>({
       id: sessionId,
       messages: initialMessages,
@@ -57,6 +65,31 @@ export function WidgetChatRuntime({
     input.trim().length > 0 &&
     input.trim().length <= 2000;
 
+  const resumeMessageId =
+    needsResume && initialMessages.at(-1)?.role === "user"
+      ? initialMessages.at(-1)?.id
+      : undefined;
+
+  useEffect(() => {
+    if (!resumeMessageId || didAutoResume.current) {
+      return;
+    }
+
+    didAutoResume.current = true;
+    regenerate({ messageId: resumeMessageId });
+  }, [resumeMessageId, regenerate]);
+
+  useEffect(() => {
+    if (
+      error instanceof WidgetApiError &&
+      error.code === "NO_UNANSWERED_MESSAGE" &&
+      !didRequestHistoryRefresh.current
+    ) {
+      didRequestHistoryRefresh.current = true;
+      onRefreshHistory();
+    }
+  }, [error, onRefreshHistory]);
+
   const submitMessage = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -68,6 +101,16 @@ export function WidgetChatRuntime({
 
     setInput("");
     sendMessage({ text: content });
+  };
+
+  const retryResume = () => {
+    clearError();
+
+    if (!resumeMessageId) {
+      return;
+    }
+
+    regenerate({ messageId: resumeMessageId });
   };
 
   return (
@@ -96,7 +139,7 @@ export function WidgetChatRuntime({
               Couldn&apos;t complete the answer.
             </AlertDescription>
             <AlertAction>
-              <Button onClick={clearError} size="xs" variant="ghost">
+              <Button onClick={retryResume} size="xs" variant="ghost">
                 Continue
               </Button>
             </AlertAction>
