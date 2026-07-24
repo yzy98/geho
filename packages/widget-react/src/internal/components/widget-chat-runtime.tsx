@@ -9,6 +9,7 @@ import {
 } from "@/internal/components/ui/input-group";
 import { Spinner } from "@/internal/components/ui/spinner";
 import type { WidgetUIMessage } from "@/internal/widget-contract";
+import { useAutoScroll } from "../hooks/use-auto-scroll";
 import { WidgetApiError } from "../widget-client";
 import { createWidgetTransport } from "../widget-transport";
 import { Alert, AlertAction, AlertDescription } from "./ui/alert";
@@ -97,6 +98,7 @@ export function WidgetChatRuntime({
     }
 
     setInput("");
+    scrollToBottom();
     sendMessage({ text: content });
   };
 
@@ -107,14 +109,22 @@ export function WidgetChatRuntime({
       return;
     }
 
+    scrollToBottom();
     regenerate({ messageId: resumeMessageId });
   };
+
+  const { containerRef, onScroll, scrollToBottom } = useAutoScroll([
+    messages,
+    status,
+  ]);
 
   return (
     <>
       <div
         aria-live="polite"
         className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto"
+        onScroll={onScroll}
+        ref={containerRef}
       >
         {messages.length === 0 ? (
           <p className="m-auto text-center text-muted-foreground text-sm">
