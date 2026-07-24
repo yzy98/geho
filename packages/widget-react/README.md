@@ -1,8 +1,7 @@
 # @geho/widget-react
 
 React chat widget for Geho. It renders a floating launcher and an isolated chat
-panel, creates an anonymous widget session on demand, streams answers, and shows
-source citations returned by the Geho API.
+panel, creates an anonymous widget session on demand, and streams answers.
 
 ## Installation
 
@@ -98,6 +97,8 @@ sends it in the `X-Geho-Key` request header when it:
 - creates an anonymous session with `POST /widget/sessions`;
 - loads history from `GET /widget/sessions/:sessionId/messages`;
 - sends a message to `POST /widget/sessions/:sessionId/messages`.
+- resumes an unanswered message with
+  `POST /widget/sessions/:sessionId/messages/resume` when necessary.
 
 Requests for an existing session also send its anonymous session token as:
 
@@ -124,7 +125,7 @@ geho:widget-react:v1:
 The rest of the key is a SHA-256 fingerprint of the normalized `apiUrl` and
 `embedKey`. The stored record contains the session ID, anonymous session token,
 creation time, and storage time. On a later page load, the widget restores that
-session and fetches its completed message history from the API.
+session and fetches its message history from the API.
 
 If `localStorage` or Web Crypto is unavailable, blocked, or starts throwing, the
 widget falls back to an in-memory session cache. A visible warning explains that
@@ -148,16 +149,21 @@ conversation state.
 Unmounting `<ChatWidget>` still removes the runtime. Mount it in a stable part of
 the application layout if chat state should survive client-side route changes.
 
-## Current reconnect limitation
+## Unanswered-message recovery
 
-This release does not support resuming or reconnecting to an in-progress streamed
-answer after a page refresh, component unmount, browser suspension, or network
-interruption. A restored session can load messages already committed by the API,
-but it cannot reconnect to the previous live stream.
+If a page refresh or interruption leaves a persisted user message without an
+assistant answer, the widget automatically asks the Geho API to generate the
+answer again when it restores the session. This is a new RAG execution, not a
+reconnection to the original token stream.
 
-If a message request fails while the widget remains mounted, the widget shows a
-**Continue** action. This clears the request error so the visitor can use the
-composer again; it does not resume the failed response.
+If the recovery request fails while the widget remains mounted, the widget shows
+a **Continue** action that retries the unanswered message.
+
+## Chat scrolling
+
+The chat view follows a streamed answer while it is at the bottom. Visitors can
+scroll up to read earlier messages without being pulled back; sending a new
+message or retrying recovery returns the view to the latest message.
 
 ## License
 
