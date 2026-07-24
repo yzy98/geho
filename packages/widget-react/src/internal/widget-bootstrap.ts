@@ -22,10 +22,15 @@ export type WidgetBootstrapReadyData = {
   normalizedApiUrl: string;
   session: WidgetSession;
   messages: WidgetUIMessage[];
+  needsResume: boolean;
   storageWarning: string | null;
 };
 
 const inFlightBootstraps = new Map<string, Promise<WidgetBootstrapReadyData>>();
+
+function hasUnansweredMessage(messages: WidgetUIMessage[]): boolean {
+  return messages.at(-1)?.role === "user";
+}
 
 async function createAndPersistSession(options: {
   normalizedApiUrl: string;
@@ -44,8 +49,9 @@ async function createAndPersistSession(options: {
   return {
     normalizedApiUrl: options.normalizedApiUrl,
     session: persisted.session,
-    messages: [], // Newly created Session has no Messages
     storageWarning: persisted.warning,
+    messages: [], // Newly created Session has no Messages
+    needsResume: false,
   };
 }
 
@@ -70,11 +76,13 @@ async function runBootstrap(options: {
       embedKey: options.embedKey,
       session: persistedSession,
     });
+    const messages = mapWidgetHistory(history);
 
     return {
       normalizedApiUrl: options.normalizedApiUrl,
       session: persistedSession,
-      messages: mapWidgetHistory(history),
+      messages,
+      needsResume: hasUnansweredMessage(messages),
       storageWarning: options.persistence.warning,
     };
   } catch (error) {

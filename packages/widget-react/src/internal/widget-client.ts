@@ -125,17 +125,6 @@ function parseCreatedSession(payload: unknown): CreateWidgetSessionResponse {
   };
 }
 
-function isWidgetCitation(value: unknown): boolean {
-  return (
-    isRecord(value) &&
-    typeof value.chunkId === "string" &&
-    typeof value.sourceId === "string" &&
-    typeof value.sourceTitle === "string" &&
-    typeof value.chunkIndex === "number" &&
-    typeof value.similarity === "number"
-  );
-}
-
 function isWidgetMessage(value: unknown): value is WidgetMessageDto {
   if (
     !isRecord(value) ||
@@ -150,11 +139,7 @@ function isWidgetMessage(value: unknown): value is WidgetMessageDto {
     return true;
   }
 
-  return (
-    value.role === "assistant" &&
-    Array.isArray(value.citations) &&
-    value.citations.every(isWidgetCitation)
-  );
+  return value.role === "assistant";
 }
 
 function parseMessages(payload: unknown): ListWidgetMessagesResponse {

@@ -1,6 +1,6 @@
 import { useChat } from "@ai-sdk/react";
 import { SendIcon } from "lucide-react";
-import { type SubmitEvent, useMemo, useState } from "react";
+import { type SubmitEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   InputGroup,
   InputGroupAddon,
@@ -8,10 +8,9 @@ import {
   InputGroupTextarea,
 } from "@/internal/components/ui/input-group";
 import { Spinner } from "@/internal/components/ui/spinner";
-import type {
-  WidgetCitation,
-  WidgetUIMessage,
-} from "@/internal/widget-contract";
+import type { WidgetUIMessage } from "@/internal/widget-contract";
+import { useAutoScroll } from "../hooks/use-auto-scroll";
+import { WidgetApiError } from "../widget-client";
 import { createWidgetTransport } from "../widget-transport";
 import { Alert, AlertAction, AlertDescription } from "./ui/alert";
 import { Button } from "./ui/button";
@@ -22,6 +21,8 @@ type WidgetChatRuntimeProps = {
   sessionId: string;
   sessionToken: string;
   initialMessages: WidgetUIMessage[];
+  needsResume: boolean;
+  onRefreshHistory: () => void;
 };
 
 export function WidgetChatRuntime({
@@ -30,8 +31,13 @@ export function WidgetChatRuntime({
   sessionId,
   sessionToken,
   initialMessages,
+  needsResume,
+  onRefreshHistory,
 }: WidgetChatRuntimeProps) {
   const [input, setInput] = useState("");
+
+  const didAutoResume = useRef(false);
+  const didRequestHistoryRefresh = useRef(false);
 
   const transport = useMemo(
     () =>
@@ -44,7 +50,7 @@ export function WidgetChatRuntime({
     [apiUrl, embedKey, sessionId, sessionToken]
   );
 
-  const { messages, sendMessage, status, error, clearError } =
+  const { messages, sendMessage, regenerate, status, error, clearError } =
     useChat<WidgetUIMessage>({
       id: sessionId,
       messages: initialMessages,
@@ -57,6 +63,31 @@ export function WidgetChatRuntime({
     input.trim().length > 0 &&
     input.trim().length <= 2000;
 
+  const resumeMessageId =
+    needsResume && initialMessages.at(-1)?.role === "user"
+      ? initialMessages.at(-1)?.id
+      : undefined;
+
+  useEffect(() => {
+    if (!resumeMessageId || didAutoResume.current) {
+      return;
+    }
+
+    didAutoResume.current = true;
+    regenerate({ messageId: resumeMessageId });
+  }, [resumeMessageId, regenerate]);
+
+  useEffect(() => {
+    if (
+      error instanceof WidgetApiError &&
+      error.code === "NO_UNANSWERED_MESSAGE" &&
+      !didRequestHistoryRefresh.current
+    ) {
+      didRequestHistoryRefresh.current = true;
+      onRefreshHistory();
+    }
+  }, [error, onRefreshHistory]);
+
   const submitMessage = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -67,14 +98,33 @@ export function WidgetChatRuntime({
     }
 
     setInput("");
+    scrollToBottom();
     sendMessage({ text: content });
   };
+
+  const retryResume = () => {
+    clearError();
+
+    if (!resumeMessageId) {
+      return;
+    }
+
+    scrollToBottom();
+    regenerate({ messageId: resumeMessageId });
+  };
+
+  const { containerRef, onScroll, scrollToBottom } = useAutoScroll([
+    messages,
+    status,
+  ]);
 
   return (
     <>
       <div
         aria-live="polite"
         className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto"
+        onScroll={onScroll}
+        ref={containerRef}
       >
         {messages.length === 0 ? (
           <p className="m-auto text-center text-muted-foreground text-sm">
@@ -96,7 +146,7 @@ export function WidgetChatRuntime({
               Couldn&apos;t complete the answer.
             </AlertDescription>
             <AlertAction>
-              <Button onClick={clearError} size="xs" variant="ghost">
+              <Button onClick={retryResume} size="xs" variant="ghost">
                 Continue
               </Button>
             </AlertAction>
@@ -145,25 +195,12 @@ function WidgetMessage({ message }: { message: WidgetUIMessage }) {
   }
 
   const answer = getAssistantAnswer(message);
-  const citations = getAssistantCitations(message);
 
   return (
     <div className="mr-auto max-w-[90%] space-y-2">
       <div className="rounded-xl bg-muted px-3 py-2">
         {answer || <span className="text-muted-foreground">Generating…</span>}
       </div>
-
-      {citations.length > 0 ? (
-        <ol className="space-y-1 text-muted-foreground text-xs">
-          {citations.map((citation) => (
-            <li key={citation.chunkId}>
-              {citation.sourceTitle}
-              {" · chunk "}
-              {citation.chunkIndex}
-            </li>
-          ))}
-        </ol>
-      ) : null}
     </div>
   );
 }
@@ -181,12 +218,4 @@ function getAssistantAnswer(message: WidgetUIMessage): string {
   );
 
   return part?.data.text ?? "";
-}
-
-function getAssistantCitations(message: WidgetUIMessage): WidgetCitation[] {
-  const part = message.parts.find(
-    (candidate) => candidate.type === "data-citations"
-  );
-
-  return part?.data ?? [];
 }

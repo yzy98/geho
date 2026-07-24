@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Automatically recover a persisted unanswered user message after the widget
+  reloads by requesting a new RAG answer from the Geho API.
+- Keep the chat view following streamed answers at the bottom while allowing
+  visitors to scroll up and read earlier messages.
+
+### Changed
+
+- Stop returning and displaying RAG citations in Widget chat messages; citations
+  remain available in server-side RAG traces.
+
 ## [0.0.2] - 2026-07-22
 
 ### Security

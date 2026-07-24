@@ -118,6 +118,8 @@ function WidgetPanel({ apiUrl, embedKey, isOpen, onClose }: WidgetPanelProps) {
               embedKey={embedKey.trim()}
               initialMessages={bootstrap.messages}
               key={bootstrap.session.sessionId}
+              needsResume={bootstrap.needsResume}
+              onRefreshHistory={bootstrap.retry}
               sessionId={bootstrap.session.sessionId}
               sessionToken={bootstrap.session.sessionToken}
             />

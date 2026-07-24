@@ -2,12 +2,7 @@
 import { randomUUID } from "node:crypto";
 import type { DbClient } from "@geho/db";
 import { and, asc, desc, eq } from "@geho/db/helper";
-import {
-  chatMessage,
-  chatSession,
-  type RagTraceCitation,
-  ragTrace,
-} from "@geho/db/schema";
+import { chatMessage, chatSession, ragTrace } from "@geho/db/schema";
 import { MAX_RAG_HISTORY_MESSAGES, type RagHistoryMessage } from "@geho/rag";
 import type { CompletedChatbotRagAnswer } from "./chatbot-rag-answer";
 import type { AuthorizedWidgetSession } from "./widget-session-access";
@@ -24,7 +19,6 @@ export type WidgetUserMessage = WidgetMessageBase & {
 
 export type WidgetAssistantMessage = WidgetMessageBase & {
   role: "assistant";
-  citations: RagTraceCitation[];
 };
 
 export type WidgetMessage = WidgetUserMessage | WidgetAssistantMessage;
@@ -52,17 +46,8 @@ export const listWidgetMessages = async ({
       role: chatMessage.role,
       content: chatMessage.content,
       createdAt: chatMessage.createdAt,
-      citations: ragTrace.citations,
     })
     .from(chatMessage)
-    .leftJoin(
-      ragTrace,
-      and(
-        eq(ragTrace.organizationId, chatMessage.organizationId),
-        eq(ragTrace.messageId, chatMessage.id),
-        eq(ragTrace.origin, "widget")
-      )
-    )
     .where(
       and(
         eq(chatMessage.organizationId, session.organizationId),
@@ -82,7 +67,6 @@ export const listWidgetMessages = async ({
       return {
         ...message,
         role: "assistant",
-        citations: row.citations ?? [],
       };
     }
 
@@ -389,7 +373,6 @@ export const finalizeWidgetAnswer = ({
         id: assistantMessageId,
         role: "assistant",
         content: completed.answer,
-        citations: completed.citations,
         createdAt: completedAt.toISOString(),
       },
       traceId,
