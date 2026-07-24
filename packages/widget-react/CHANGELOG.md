@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-07-24
+
 ### Added
 
 - Automatically recover a persisted unanswered user message after the widget
@@ -45,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Embed Key authentication, CORS requirements, persistence, and reconnect
   limitations.
 
-[Unreleased]: https://github.com/yzy98/geho/compare/widget-react-v0.0.2...HEAD
+[Unreleased]: https://github.com/yzy98/geho/compare/widget-react-v0.0.3...HEAD
+[0.0.3]: https://github.com/yzy98/geho/compare/widget-react-v0.0.2...widget-react-v0.0.3
 [0.0.2]: https://github.com/yzy98/geho/compare/widget-react-v0.0.1...widget-react-v0.0.2
 [0.0.1]: https://github.com/yzy98/geho/releases/tag/widget-react-v0.0.1
