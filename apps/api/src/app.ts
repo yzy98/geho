@@ -1,6 +1,6 @@
+import { createEmbeddingModel } from "@geho/ai";
 import type { AuthServer } from "@geho/auth/server";
 import type { DbClient } from "@geho/db";
-import { generateEmbeddings } from "./lib/embedding";
 import { createApiRoutes } from "./routes";
 import {
   createInProcessKnowledgeSourceIngestionStarter,
@@ -22,7 +22,7 @@ export function createApp({
     {
       db,
       encryptionKey,
-      generateEmbeddings,
+      createEmbeddingModel,
     }
   ),
 }: CreateAppOptions) {

@@ -1,34 +1,15 @@
-import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+export { resolveCitations } from "./answer/citations";
+export { MAX_RAG_HISTORY_MESSAGES } from "./answer/constants";
+export { prepareRagPrompt } from "./answer/prompt";
+export { ragAnswerSchema, type StructuredRagAnswer } from "./answer/schema";
+export type {
+  PreparedRagPrompt,
+  RagCitation,
+  RagContextChunk,
+  RagHistoryMessage,
+  RagModelInput,
+  RagPromptMessage,
+} from "./answer/types";
 
-export type Chunk = {
-  chunkIndex: number;
-  content: string;
-};
-
-export type GetChunksOptions = {
-  chunkSize?: number;
-  chunkOverlap?: number;
-};
-
-const DEFAULT_CHUNK_SIZE = 1200;
-const DEFAULT_CHUNK_OVERLAP = 200;
-
-export const getChunks = async (
-  rawText: string,
-  options?: GetChunksOptions
-): Promise<Chunk[]> => {
-  const splitter = new RecursiveCharacterTextSplitter({
-    chunkSize: options?.chunkSize ?? DEFAULT_CHUNK_SIZE,
-    chunkOverlap: options?.chunkOverlap ?? DEFAULT_CHUNK_OVERLAP,
-  });
-
-  const contents = await splitter.splitText(rawText);
-
-  return contents
-    .map((content) => content.trim())
-    .filter((content) => content.length > 0)
-    .map((content, chunkIndex) => ({
-      content,
-      chunkIndex,
-    }));
-};
+export { getChunks } from "./chunking/get-chunks";
+export type { Chunk, GetChunksOptions } from "./chunking/types";

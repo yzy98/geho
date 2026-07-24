@@ -7,13 +7,10 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@langchain/textsplitters": "^1.0.1"
-  },
-  "devDependencies": {
-    "vitest": "catalog:"
+    "@langchain/textsplitters": "^1.0.1",
+    "zod": "catalog:"
   }
 }

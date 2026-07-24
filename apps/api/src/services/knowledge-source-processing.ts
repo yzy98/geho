@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { type CreateEmbeddingModel, EMBEDDING_DIMENSIONS } from "@geho/ai";
 import type { DbClient } from "@geho/db";
 import { and, eq } from "@geho/db/helper";
 import {
@@ -9,11 +10,6 @@ import {
 } from "@geho/db/schema";
 import { type Chunk, getChunks } from "@geho/rag";
 import { decryptApiKey } from "../lib/api-key-encryption";
-import {
-  EMBEDDING_DIMENSIONS,
-  type GenerateEmbeddings,
-} from "../lib/embedding";
-import { resolveEmbeddingModel } from "../lib/embedding-models";
 
 const SOURCE_ERROR = {
   EMPTY_CONTENT: "EMPTY_CONTENT",
@@ -32,7 +28,7 @@ const SOURCE_ERROR_MESSAGE = {
 export type ProcessKnowledgeSourceOptions = {
   db: DbClient;
   encryptionKey: Uint8Array;
-  generateEmbeddings: GenerateEmbeddings;
+  createEmbeddingModel: CreateEmbeddingModel;
   organizationId: string;
   sourceId: string;
 };
@@ -237,7 +233,7 @@ const isValidEmbeddingMatch = ({
 export const processKnowledgeSource = async ({
   db,
   encryptionKey,
-  generateEmbeddings,
+  createEmbeddingModel,
   organizationId,
   sourceId,
 }: ProcessKnowledgeSourceOptions): Promise<void> => {
@@ -291,19 +287,18 @@ export const processKnowledgeSource = async ({
       encryptionKey,
     });
 
-    // Resolve the embedding model
-    const model = resolveEmbeddingModel({
+    // Create the embedding model
+    const model = createEmbeddingModel({
       apiKey,
       modelId: provider.modelId,
       provider: provider.provider,
-      baseUrl: provider.baseUrl,
+      baseURL: provider.baseUrl,
     });
 
     // Generate embeddings
-    const embeddings = await generateEmbeddings({
-      model,
-      values: chunks.map((chunk) => chunk.content),
-    });
+    const embeddings = await model.embedDocuments(
+      chunks.map((chunk) => chunk.content)
+    );
 
     // Check if embeddings generated are valid
     if (

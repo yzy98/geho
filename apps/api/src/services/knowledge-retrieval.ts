@@ -1,9 +1,8 @@
+import { createEmbeddingModel } from "@geho/ai";
 import type { DbClient } from "@geho/db";
 import { and, eq } from "@geho/db/helper";
 import { knowledgeBase, modelProvider } from "@geho/db/schema";
 import { decryptApiKey } from "../lib/api-key-encryption";
-import { generateEmbedding } from "../lib/embedding";
-import { resolveEmbeddingModel } from "../lib/embedding-models";
 import { findSimilarKnowledgeChunks, type RagChunk } from "../lib/retrieval";
 import type { RetrievalPreviewInput } from "../schemas/knowledge-bases";
 
@@ -100,18 +99,16 @@ export const retrieveKnowledgeChunks = async ({
       encryptionKey,
     });
 
-    // Resolve the embedding model
-    const model = resolveEmbeddingModel({
+    // Create the embedding model
+    const model = createEmbeddingModel({
       apiKey,
       modelId: embeddingProvider.modelId,
       provider: embeddingProvider.provider,
-      baseUrl: embeddingProvider.baseUrl,
+      baseURL: embeddingProvider.baseUrl,
     });
 
     // Generate query embedding
-    queryEmbedding = await generateEmbedding({
-      model,
-      value: query,
+    queryEmbedding = await model.embedQuery(query, {
       ...(abortSignal ? { abortSignal } : {}),
     });
   } catch {

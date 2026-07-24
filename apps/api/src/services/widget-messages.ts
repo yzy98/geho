@@ -8,7 +8,7 @@ import {
   type RagTraceCitation,
   ragTrace,
 } from "@geho/db/schema";
-import { MAX_RAG_HISTORY_MESSAGES, type RagHistoryMessage } from "../lib/rag";
+import { MAX_RAG_HISTORY_MESSAGES, type RagHistoryMessage } from "@geho/rag";
 import type { CompletedChatbotRagAnswer } from "./chatbot-rag-answer";
 import type { AuthorizedWidgetSession } from "./widget-session-access";
 
