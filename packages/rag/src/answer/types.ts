@@ -16,7 +16,7 @@ export type RagContextChunk = {
   sourceTitle: string;
   chunkIndex: number;
   content: string;
-  similarity: number;
+  fusedScore: number;
 };
 
 export type RagCitation = {
@@ -24,7 +24,7 @@ export type RagCitation = {
   sourceId: string;
   sourceTitle: string;
   chunkIndex: number;
-  similarity: number;
+  fusedScore: number;
 };
 
 export type RagModelInput =

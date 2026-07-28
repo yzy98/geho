@@ -3,8 +3,21 @@ import type { DbClient } from "@geho/db";
 import { and, eq } from "@geho/db/helper";
 import { knowledgeBase, modelProvider } from "@geho/db/schema";
 import { decryptApiKey } from "../lib/api-key-encryption";
-import { findSimilarKnowledgeChunks, type RagChunk } from "../lib/retrieval";
+import {
+  type RetrievedChunk,
+  type RetrievedChunkBase,
+  retrieveLexicalChunks,
+  retrieveVectorChunks,
+} from "../lib/retrieval";
 import type { RetrievalPreviewInput } from "../schemas/knowledge-bases";
+
+const RRF_K = 60;
+
+export type FusedRetrievedChunk = RetrievedChunkBase & {
+  vectorSimilarity?: number;
+  lexicalRank?: number;
+  fusedScore: number;
+};
 
 export type RetrieveKnowledgeChunksOptions = {
   db: DbClient;
@@ -18,7 +31,7 @@ export type RetrieveKnowledgeChunksOptions = {
 export type RetrieveKnowledgeChunksResult =
   | {
       status: "retrieved";
-      chunks: RagChunk[];
+      chunks: FusedRetrievedChunk[];
     }
   | {
       status: "knowledge_base_not_found";
@@ -67,6 +80,54 @@ const getKnowledgeBaseEmbeddingProvider = async ({
   return rows[0]?.embeddingProvider ?? null;
 };
 
+function fuseCandidates(
+  lists: readonly RetrievedChunk[][],
+  limit: number
+): FusedRetrievedChunk[] {
+  const results = new Map<string, FusedRetrievedChunk>();
+
+  for (const list of lists) {
+    list.forEach((chunk, index) => {
+      const rrfContribution = 1 / (RRF_K + index + 1);
+      const existing = results.get(chunk.chunkId);
+
+      if (existing) {
+        if (chunk.vectorSimilarity !== undefined) {
+          existing.vectorSimilarity = chunk.vectorSimilarity;
+        }
+        if (chunk.lexicalRank !== undefined) {
+          existing.lexicalRank = chunk.lexicalRank;
+        }
+        existing.fusedScore += rrfContribution;
+        return;
+      }
+
+      results.set(chunk.chunkId, {
+        chunkId: chunk.chunkId,
+        sourceId: chunk.sourceId,
+        sourceTitle: chunk.sourceTitle,
+        chunkIndex: chunk.chunkIndex,
+        content: chunk.content,
+        ...(chunk.vectorSimilarity === undefined
+          ? {}
+          : { vectorSimilarity: chunk.vectorSimilarity }),
+        ...(chunk.lexicalRank === undefined
+          ? {}
+          : { lexicalRank: chunk.lexicalRank }),
+        fusedScore: rrfContribution,
+      });
+    });
+  }
+
+  return [...results.values()]
+    .sort(
+      (left, right) =>
+        right.fusedScore - left.fusedScore ||
+        left.chunkId.localeCompare(right.chunkId)
+    )
+    .slice(0, limit);
+}
+
 export const retrieveKnowledgeChunks = async ({
   db,
   encryptionKey,
@@ -76,6 +137,9 @@ export const retrieveKnowledgeChunks = async ({
   abortSignal,
 }: RetrieveKnowledgeChunksOptions): Promise<RetrieveKnowledgeChunksResult> => {
   const { query, limit, minSimilarity } = input;
+
+  const finalLimit = limit ?? 5;
+  const candidateLimit = Math.max(20, finalLimit);
 
   // Find the current knowledge base's embedding provider
   const embeddingProvider = await getKnowledgeBaseEmbeddingProvider({
@@ -117,18 +181,32 @@ export const retrieveKnowledgeChunks = async ({
     };
   }
 
-  // Find similar chunks under the current knowledge base
-  const chunks = await findSimilarKnowledgeChunks({
-    db,
-    knowledgeBaseId,
-    organizationId,
-    queryEmbedding,
-    ...(limit === undefined ? {} : { limit }),
-    ...(minSimilarity === undefined ? {} : { minSimilarity }),
-  });
+  // Retrieve vector and lexical(full-text) chunks
+  const [vectorCandidates, lexicalCandidates] = await Promise.all([
+    retrieveVectorChunks({
+      db,
+      knowledgeBaseId,
+      organizationId,
+      queryEmbedding,
+      limit: candidateLimit,
+      minSimilarity: minSimilarity ?? 0.35,
+    }),
+    retrieveLexicalChunks({
+      db,
+      knowledgeBaseId,
+      organizationId,
+      query,
+      limit: candidateLimit,
+    }),
+  ]);
+
+  const fusedChunks = fuseCandidates(
+    [vectorCandidates, lexicalCandidates],
+    finalLimit
+  );
 
   return {
     status: "retrieved",
-    chunks,
+    chunks: fusedChunks,
   };
 };

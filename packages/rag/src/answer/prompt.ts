@@ -18,7 +18,6 @@ export const buildRagContext = (chunks: readonly RagContextChunk[]): string => {
     chunkId: ${chunk.chunkId}
     sourceTitle: ${chunk.sourceTitle}
     chunkIndex: ${chunk.chunkIndex}
-    similarity: ${chunk.similarity}
     content:
     ${chunk.content}
     `

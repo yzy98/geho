@@ -23,7 +23,9 @@ export type RagTraceRetrievedChunk = {
   sourceTitle: string;
   chunkIndex: number;
   content: string;
-  similarity: number;
+  vectorSimilarity?: number;
+  lexicalRank?: number;
+  fusedScore: number;
 };
 
 export type RagTraceCitation = {
@@ -31,7 +33,7 @@ export type RagTraceCitation = {
   sourceId: string;
   sourceTitle: string;
   chunkIndex: number;
-  similarity: number;
+  fusedScore: number;
 };
 
 export const ragTrace = pgTable(

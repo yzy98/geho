@@ -41,5 +41,5 @@ export const resolveCitations = ({
     sourceId: chunk.sourceId,
     sourceTitle: chunk.sourceTitle,
     chunkIndex: chunk.chunkIndex,
-    similarity: chunk.similarity,
+    fusedScore: chunk.fusedScore,
   }));

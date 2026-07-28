@@ -120,6 +120,12 @@ export const knowledgeChunk = pgTable(
       table.embedding.op("vector_cosine_ops")
     ),
 
+    // Index for full-text search in PostgreSQL for content cloumn
+    index("knowledge_chunk_content_search_idx").using(
+      "gin",
+      sql`to_tsvector('simple', ${table.content})`
+    ),
+
     // Prevents cross-tenant Source references and removes Chunks with the Source.
     foreignKey({
       columns: [table.sourceId, table.organizationId],
