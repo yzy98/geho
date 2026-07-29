@@ -13,6 +13,7 @@ import {
   type RagTraceRetrievedChunk,
 } from "@geho/db/schema";
 import type { RagHistoryMessage } from "@geho/rag";
+import type { LanguageModel } from "ai";
 import { decryptApiKey } from "../lib/api-key-encryption";
 import { retrieveKnowledgeChunks } from "./knowledge-retrieval";
 
@@ -34,6 +35,7 @@ export type GenerateChatbotRagAnswerResult =
       promptPreview: string;
       citations: RagTraceCitation[];
       retrievedChunks: RagTraceRetrievedChunk[];
+      lexicalQuery: string | null;
       latencyMs: number;
     }
   | {
@@ -114,9 +116,32 @@ export const generateChatbotRagAnswer: GenerateChatbotRagAnswer = async ({
     };
   }
 
+  let model: LanguageModel;
+
+  try {
+    // Decrypt chatbot's chat provider's encryptedApiKey
+    const apiKey = await decryptApiKey({
+      encryptedApiKey: matchedChatbot.chatProvider.encryptedApiKey,
+      encryptionKey,
+    });
+
+    // Create the chat model
+    model = createChatModel({
+      apiKey,
+      modelId: matchedChatbot.chatProvider.modelId,
+      provider: matchedChatbot.chatProvider.provider,
+      baseURL: matchedChatbot.chatProvider.baseUrl,
+    });
+  } catch {
+    return {
+      status: "chat_provider_failed",
+    };
+  }
+
   // Retrieve knowledge chunks
   const retrievalResult = await retrieveKnowledgeChunks({
     db,
+    queryRewriteModel: model,
     encryptionKey,
     organizationId,
     knowledgeBaseId: matchedChatbot.chatbot.knowledgeBaseId,
@@ -132,20 +157,6 @@ export const generateChatbotRagAnswer: GenerateChatbotRagAnswer = async ({
   }
 
   try {
-    // Decrypt chatbot's chat provider's encryptedApiKey
-    const apiKey = await decryptApiKey({
-      encryptedApiKey: matchedChatbot.chatProvider.encryptedApiKey,
-      encryptionKey,
-    });
-
-    // Create the chat model
-    const model = createChatModel({
-      apiKey,
-      modelId: matchedChatbot.chatProvider.modelId,
-      provider: matchedChatbot.chatProvider.provider,
-      baseURL: matchedChatbot.chatProvider.baseUrl,
-    });
-
     // Generate rag answer
     const generated = await generateRagAnswer({
       model,
@@ -163,6 +174,7 @@ export const generateChatbotRagAnswer: GenerateChatbotRagAnswer = async ({
       knowledgeBaseId: matchedChatbot.chatbot.knowledgeBaseId,
       modelId: matchedChatbot.chatProvider.modelId,
       retrievedChunks: retrievalResult.chunks,
+      lexicalQuery: retrievalResult.lexicalQuery,
       latencyMs: Date.now() - startedAt,
     };
   } catch {
@@ -189,6 +201,7 @@ export type CompletedChatbotRagAnswer = {
   promptPreview: string;
   citations: RagTraceCitation[];
   retrievedChunks: RagTraceRetrievedChunk[];
+  lexicalQuery: string | null;
   latencyMs: number;
 };
 
@@ -233,9 +246,30 @@ export const createChatbotRagAnswerStream = async ({
     };
   }
 
+  let model: LanguageModel;
+
+  try {
+    // Decrypt chatbot's chat provider's encryptedApiKey
+    const apiKey = await decryptApiKey({
+      encryptedApiKey: matchedChatbot.chatProvider.encryptedApiKey,
+      encryptionKey,
+    });
+
+    // Create the chat model
+    model = createChatModel({
+      apiKey,
+      modelId: matchedChatbot.chatProvider.modelId,
+      provider: matchedChatbot.chatProvider.provider,
+      baseURL: matchedChatbot.chatProvider.baseUrl,
+    });
+  } catch {
+    return { status: "chat_provider_failed" };
+  }
+
   // Retrieve knowledge chunks
   const retrievalResult = await retrieveKnowledgeChunks({
     db,
+    queryRewriteModel: model,
     encryptionKey,
     organizationId,
     knowledgeBaseId: matchedChatbot.chatbot.knowledgeBaseId,
@@ -252,20 +286,7 @@ export const createChatbotRagAnswerStream = async ({
   }
 
   try {
-    // Decrypt chatbot's chat provider's encryptedApiKey
-    const apiKey = await decryptApiKey({
-      encryptedApiKey: matchedChatbot.chatProvider.encryptedApiKey,
-      encryptionKey,
-    });
-
-    // Create the chat model
-    const model = createChatModel({
-      apiKey,
-      modelId: matchedChatbot.chatProvider.modelId,
-      provider: matchedChatbot.chatProvider.provider,
-      baseURL: matchedChatbot.chatProvider.baseUrl,
-    });
-
+    // Stream rag answer
     const streamed = streamRagAnswer({
       model,
       question,
@@ -288,11 +309,14 @@ export const createChatbotRagAnswerStream = async ({
           knowledgeBaseId: matchedChatbot.chatbot.knowledgeBaseId,
           modelId: matchedChatbot.chatProvider.modelId,
           retrievedChunks: retrievalResult.chunks,
+          lexicalQuery: retrievalResult.lexicalQuery,
           latencyMs: Date.now() - startedAt,
         };
       },
     };
   } catch {
-    return { status: "chat_provider_failed" };
+    return {
+      status: "chat_provider_failed",
+    };
   }
 };
