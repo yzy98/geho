@@ -349,6 +349,7 @@ export const finalizeWidgetAnswer = ({
       citations: completed.citations,
       retrievedChunks: completed.retrievedChunks,
       latencyMs: completed.latencyMs,
+      lexicalQuery: completed.lexicalQuery,
       createdAt: completedAt,
     });
 

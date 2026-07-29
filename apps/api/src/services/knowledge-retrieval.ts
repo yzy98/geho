@@ -1,7 +1,8 @@
-import { createEmbeddingModel } from "@geho/ai";
+import { createEmbeddingModel, rewriteLexicalQuery } from "@geho/ai";
 import type { DbClient } from "@geho/db";
 import { and, eq } from "@geho/db/helper";
 import { knowledgeBase, modelProvider } from "@geho/db/schema";
+import type { LanguageModel } from "ai";
 import { decryptApiKey } from "../lib/api-key-encryption";
 import {
   type RetrievedChunk,
@@ -21,6 +22,7 @@ export type FusedRetrievedChunk = RetrievedChunkBase & {
 
 export type RetrieveKnowledgeChunksOptions = {
   db: DbClient;
+  queryRewriteModel?: LanguageModel;
   encryptionKey: Uint8Array;
   organizationId: string;
   knowledgeBaseId: string;
@@ -32,6 +34,7 @@ export type RetrieveKnowledgeChunksResult =
   | {
       status: "retrieved";
       chunks: FusedRetrievedChunk[];
+      lexicalQuery: string | null;
     }
   | {
       status: "knowledge_base_not_found";
@@ -130,6 +133,7 @@ function fuseCandidates(
 
 export const retrieveKnowledgeChunks = async ({
   db,
+  queryRewriteModel,
   encryptionKey,
   organizationId,
   knowledgeBaseId,
@@ -181,6 +185,15 @@ export const retrieveKnowledgeChunks = async ({
     };
   }
 
+  // Query rewrite for lexical retrieval
+  const lexicalQuery = queryRewriteModel
+    ? await rewriteLexicalQuery({
+        model: queryRewriteModel,
+        query,
+        ...(abortSignal ? { abortSignal } : {}),
+      })
+    : undefined;
+
   // Retrieve vector and lexical(full-text) chunks
   const [vectorCandidates, lexicalCandidates] = await Promise.all([
     retrieveVectorChunks({
@@ -195,7 +208,7 @@ export const retrieveKnowledgeChunks = async ({
       db,
       knowledgeBaseId,
       organizationId,
-      query,
+      query: lexicalQuery ?? query,
       limit: candidateLimit,
     }),
   ]);
@@ -208,5 +221,6 @@ export const retrieveKnowledgeChunks = async ({
   return {
     status: "retrieved",
     chunks: fusedChunks,
+    lexicalQuery: lexicalQuery ?? null,
   };
 };

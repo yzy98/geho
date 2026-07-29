@@ -52,6 +52,7 @@ export const ragTrace = pgTable(
     promptPreview: text().notNull(),
     modelId: text().notNull(),
     latencyMs: integer().notNull(),
+    lexicalQuery: text(),
     retrievedChunks: jsonb().$type<RagTraceRetrievedChunk[]>().notNull(),
     citations: jsonb().$type<RagTraceCitation[]>().notNull(),
     createdAt: timestamp({ precision: 6, withTimezone: true }).notNull(),

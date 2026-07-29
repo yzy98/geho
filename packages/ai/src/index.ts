@@ -18,3 +18,5 @@ export type {
   RagAnswerOptions,
   RagAnswerStream,
 } from "./rag-answer/types";
+
+export { rewriteLexicalQuery } from "./retrieval/rewrite-lexical-query";
