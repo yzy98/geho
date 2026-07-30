@@ -59,6 +59,7 @@ const streamWidgetRagResponse = ({
   const assistantMessageId = randomUUID();
 
   const stream = createUIMessageStream<WidgetUIMessage>({
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ignore
     execute: async ({ writer }) => {
       try {
         writer.write({
@@ -75,6 +76,52 @@ const streamWidgetRagResponse = ({
           history: prepared.history,
           abortSignal,
         });
+
+        if (streamed.status === "no_knowledge") {
+          if (abortSignal.aborted) {
+            writer.write({
+              type: "abort",
+              reason: "Client disconnected",
+            });
+            return;
+          }
+
+          const finalized = await finalizeWidgetAnswer({
+            db,
+            assistantMessageId,
+            prepared,
+            completed: streamed.completed,
+          });
+
+          if (finalized.status !== "finalized") {
+            throw new Error(
+              `Widget answer finalize failed: ${finalized.status}`
+            );
+          }
+
+          writer.write({
+            type: "data-answer",
+            id: "answer",
+            data: {
+              text: finalized.assistantMessage.content,
+            },
+          });
+
+          writer.write({
+            type: "message-metadata",
+            messageMetadata: {
+              createdAt: finalized.assistantMessage.createdAt,
+              traceId: finalized.traceId,
+            },
+          });
+
+          writer.write({
+            type: "finish",
+            finishReason: "stop",
+          });
+
+          return;
+        }
 
         if (streamed.status !== "answered") {
           throw new Error(`Widget RAG failed: ${streamed.status}`);

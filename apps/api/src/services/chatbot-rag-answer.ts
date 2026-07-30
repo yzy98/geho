@@ -10,12 +10,19 @@ import {
   chatbot,
   modelProvider,
   type RagTraceCitation,
+  type RagTraceRetrievalMetadata,
   type RagTraceRetrievedChunk,
 } from "@geho/db/schema";
 import type { RagHistoryMessage } from "@geho/rag";
 import type { LanguageModel } from "ai";
 import { decryptApiKey } from "../lib/api-key-encryption";
 import { retrieveKnowledgeChunks } from "./knowledge-retrieval";
+
+const NO_KNOWLEDGE_ANSWER =
+  "I don't have enough information in this knowledge base to answer that.";
+
+const NO_KNOWLEDGE_PROMPT_PREVIEW =
+  "No retrieval candidates; answer generation skipped.";
 
 export type GenerateChatbotRagAnswerOptions = {
   db: DbClient;
@@ -36,6 +43,7 @@ export type GenerateChatbotRagAnswerResult =
       citations: RagTraceCitation[];
       retrievedChunks: RagTraceRetrievedChunk[];
       lexicalQuery: string | null;
+      retrievalMetadata: RagTraceRetrievalMetadata;
       latencyMs: number;
     }
   | {
@@ -156,6 +164,21 @@ export const generateChatbotRagAnswer: GenerateChatbotRagAnswer = async ({
     };
   }
 
+  if (retrievalResult.chunks.length === 0) {
+    return {
+      status: "answered",
+      answer: NO_KNOWLEDGE_ANSWER,
+      citations: [],
+      promptPreview: NO_KNOWLEDGE_PROMPT_PREVIEW,
+      knowledgeBaseId: matchedChatbot.chatbot.knowledgeBaseId,
+      modelId: matchedChatbot.chatProvider.modelId,
+      retrievedChunks: [],
+      lexicalQuery: retrievalResult.lexicalQuery,
+      retrievalMetadata: retrievalResult.retrievalMetadata,
+      latencyMs: Date.now() - startedAt,
+    };
+  }
+
   try {
     // Generate rag answer
     const generated = await generateRagAnswer({
@@ -175,6 +198,7 @@ export const generateChatbotRagAnswer: GenerateChatbotRagAnswer = async ({
       modelId: matchedChatbot.chatProvider.modelId,
       retrievedChunks: retrievalResult.chunks,
       lexicalQuery: retrievalResult.lexicalQuery,
+      retrievalMetadata: retrievalResult.retrievalMetadata,
       latencyMs: Date.now() - startedAt,
     };
   } catch {
@@ -202,6 +226,7 @@ export type CompletedChatbotRagAnswer = {
   citations: RagTraceCitation[];
   retrievedChunks: RagTraceRetrievedChunk[];
   lexicalQuery: string | null;
+  retrievalMetadata: RagTraceRetrievalMetadata;
   latencyMs: number;
 };
 
@@ -210,6 +235,10 @@ export type CreateChatbotRagAnswerStreamResult =
       status: "answered";
       partialOutputStream: RagAnswerStream["partialOutputStream"];
       complete: () => Promise<CompletedChatbotRagAnswer>;
+    }
+  | {
+      status: "no_knowledge";
+      completed: CompletedChatbotRagAnswer;
     }
   | {
       status: "chatbot_not_found";
@@ -285,6 +314,23 @@ export const createChatbotRagAnswerStream = async ({
     };
   }
 
+  if (retrievalResult.chunks.length === 0) {
+    return {
+      status: "no_knowledge",
+      completed: {
+        answer: NO_KNOWLEDGE_ANSWER,
+        citations: [],
+        promptPreview: NO_KNOWLEDGE_PROMPT_PREVIEW,
+        knowledgeBaseId: matchedChatbot.chatbot.knowledgeBaseId,
+        modelId: matchedChatbot.chatProvider.modelId,
+        retrievedChunks: [],
+        lexicalQuery: retrievalResult.lexicalQuery,
+        retrievalMetadata: retrievalResult.retrievalMetadata,
+        latencyMs: Date.now() - startedAt,
+      },
+    };
+  }
+
   try {
     // Stream rag answer
     const streamed = streamRagAnswer({
@@ -310,6 +356,7 @@ export const createChatbotRagAnswerStream = async ({
           modelId: matchedChatbot.chatProvider.modelId,
           retrievedChunks: retrievalResult.chunks,
           lexicalQuery: retrievalResult.lexicalQuery,
+          retrievalMetadata: retrievalResult.retrievalMetadata,
           latencyMs: Date.now() - startedAt,
         };
       },
