@@ -1,7 +1,11 @@
 import { createEmbeddingModel, rewriteLexicalQuery } from "@geho/ai";
 import type { DbClient } from "@geho/db";
 import { and, eq } from "@geho/db/helper";
-import { knowledgeBase, modelProvider } from "@geho/db/schema";
+import {
+  knowledgeBase,
+  modelProvider,
+  type RagTraceRetrievalMetadata,
+} from "@geho/db/schema";
 import type { LanguageModel } from "ai";
 import { decryptApiKey } from "../lib/api-key-encryption";
 import {
@@ -12,6 +16,8 @@ import {
 } from "../lib/retrieval";
 import type { RetrievalPreviewInput } from "../schemas/knowledge-bases";
 
+// RRF combines ranking positions instead of adding vector and FTS scores,
+// because their numeric scales are not comparable.
 const RRF_K = 60;
 
 export type FusedRetrievedChunk = RetrievedChunkBase & {
@@ -35,6 +41,7 @@ export type RetrieveKnowledgeChunksResult =
       status: "retrieved";
       chunks: FusedRetrievedChunk[];
       lexicalQuery: string | null;
+      retrievalMetadata: RagTraceRetrievalMetadata;
     }
   | {
       status: "knowledge_base_not_found";
@@ -83,7 +90,7 @@ const getKnowledgeBaseEmbeddingProvider = async ({
   return rows[0]?.embeddingProvider ?? null;
 };
 
-function fuseCandidates(
+function fuseRetrievalCandidates(
   lists: readonly RetrievedChunk[][],
   limit: number
 ): FusedRetrievedChunk[] {
@@ -140,6 +147,7 @@ export const retrieveKnowledgeChunks = async ({
   input,
   abortSignal,
 }: RetrieveKnowledgeChunksOptions): Promise<RetrieveKnowledgeChunksResult> => {
+  const retrievalStartedAt = Date.now();
   const { query, limit, minSimilarity } = input;
 
   const finalLimit = limit ?? 5;
@@ -185,16 +193,9 @@ export const retrieveKnowledgeChunks = async ({
     };
   }
 
-  // Query rewrite for lexical retrieval
-  const lexicalQuery = queryRewriteModel
-    ? await rewriteLexicalQuery({
-        model: queryRewriteModel,
-        query,
-        ...(abortSignal ? { abortSignal } : {}),
-      })
-    : undefined;
-
-  // Retrieve vector and lexical(full-text) chunks
+  // The primary pass always uses the original question.
+  // This provides the baseline retrieval result and avoids paying for query rewriting
+  // when FTS already finds evidence.
   const [vectorCandidates, lexicalCandidates] = await Promise.all([
     retrieveVectorChunks({
       db,
@@ -208,19 +209,89 @@ export const retrieveKnowledgeChunks = async ({
       db,
       knowledgeBaseId,
       organizationId,
-      query: lexicalQuery ?? query,
+      query,
       limit: candidateLimit,
     }),
   ]);
 
-  const fusedChunks = fuseCandidates(
-    [vectorCandidates, lexicalCandidates],
-    finalLimit
-  );
+  // Rewrite only when semantic retrieval found evidence but simple FTS found none.
+  // Do not rewrite when both paths are empty: that is a no-knowledge case.
+  const rewriteTriggered =
+    vectorCandidates.length > 0 && lexicalCandidates.length === 0;
+
+  // The rewritten query is only for FTS. Reuse the original vector candidates
+  // to avoid a second embedding call and preserve the original semantic ranking.
+  let candidateLists: readonly RetrievedChunk[][] = [
+    vectorCandidates,
+    lexicalCandidates,
+  ];
+
+  let lexicalQuery: string | null = null;
+  let rewriteStatus: RagTraceRetrievalMetadata["rewrite"]["status"] =
+    "not_needed";
+  let rewrittenLexicalCandidateCount: number | null = null;
+  let rewriteLatencyMs: number | null = null;
+
+  if (rewriteTriggered) {
+    if (queryRewriteModel) {
+      const rewriteStartedAt = Date.now();
+
+      const rewrittenQuery = await rewriteLexicalQuery({
+        model: queryRewriteModel,
+        query,
+        ...(abortSignal ? { abortSignal } : {}),
+      });
+
+      rewriteLatencyMs = Date.now() - rewriteStartedAt;
+
+      if (rewrittenQuery === undefined) {
+        rewriteStatus = "failed";
+      } else {
+        const rewrittenLexicalCandidates = await retrieveLexicalChunks({
+          db,
+          knowledgeBaseId,
+          organizationId,
+          query: rewrittenQuery,
+          limit: candidateLimit,
+        });
+
+        candidateLists = [vectorCandidates, rewrittenLexicalCandidates];
+        lexicalQuery = rewrittenQuery;
+        rewriteStatus = "applied";
+        rewrittenLexicalCandidateCount = rewrittenLexicalCandidates.length;
+      }
+    } else {
+      rewriteStatus = "unavailable";
+    }
+  }
+
+  const fusedChunks = fuseRetrievalCandidates(candidateLists, finalLimit);
+
+  const topVectorSimilarity = vectorCandidates[0]?.vectorSimilarity;
+
+  // Persist enough retrieval diagnostics to calibrate a future low-confidence
+  // fallback threshold without storing full intermediate candidate lists.
+  const retrievalMetadata: RagTraceRetrievalMetadata = {
+    primary: {
+      vectorCandidateCount: vectorCandidates.length,
+      lexicalCandidateCount: lexicalCandidates.length,
+      topVectorSimilarity: topVectorSimilarity ?? null,
+    },
+    rewrite: {
+      status: rewriteStatus,
+      lexicalCandidateCount: rewrittenLexicalCandidateCount,
+      latencyMs: rewriteLatencyMs,
+    },
+    final: {
+      chunkCount: fusedChunks.length,
+    },
+    retrievalLatencyMs: Date.now() - retrievalStartedAt,
+  };
 
   return {
     status: "retrieved",
     chunks: fusedChunks,
-    lexicalQuery: lexicalQuery ?? null,
+    lexicalQuery,
+    retrievalMetadata,
   };
 };

@@ -350,6 +350,7 @@ export const finalizeWidgetAnswer = ({
       retrievedChunks: completed.retrievedChunks,
       latencyMs: completed.latencyMs,
       lexicalQuery: completed.lexicalQuery,
+      retrievalMetadata: completed.retrievalMetadata,
       createdAt: completedAt,
     });
 

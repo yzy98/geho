@@ -23,8 +23,14 @@ export type RagTraceRetrievedChunk = {
   sourceTitle: string;
   chunkIndex: number;
   content: string;
+
+  // Cosine similarity from the primary vector retrieval path.
   vectorSimilarity?: number;
+
+  // PostgreSQL ts_rank_cd score from the lexical retrieval path.
   lexicalRank?: number;
+
+  // Reciprocal Rank Fusion score; not a semantic similarity score.
   fusedScore: number;
 };
 
@@ -34,6 +40,32 @@ export type RagTraceCitation = {
   sourceTitle: string;
   chunkIndex: number;
   fusedScore: number;
+};
+
+export type RagTraceRetrievalMetadata = {
+  // Retrieval with the user's original question, before any fallback rewrite.
+  primary: {
+    vectorCandidateCount: number;
+    lexicalCandidateCount: number;
+
+    // Recorded for future low-confidence threshold calibration.
+    topVectorSimilarity: number | null;
+  };
+
+  // Optional, one-shot fallback executed only when primary lexical retrieval is empty.
+  rewrite: {
+    status: "not_needed" | "unavailable" | "failed" | "applied";
+    lexicalCandidateCount: number | null;
+    latencyMs: number | null;
+  };
+
+  // RRF output supplied to the answer generator.
+  final: {
+    chunkCount: number;
+  };
+
+  // Includes embedding, primary retrieval, and any rewrite fallback.
+  retrievalLatencyMs: number;
 };
 
 export const ragTrace = pgTable(
@@ -52,10 +84,15 @@ export const ragTrace = pgTable(
     promptPreview: text().notNull(),
     modelId: text().notNull(),
     latencyMs: integer().notNull(),
-    lexicalQuery: text(),
     retrievedChunks: jsonb().$type<RagTraceRetrievedChunk[]>().notNull(),
     citations: jsonb().$type<RagTraceCitation[]>().notNull(),
     createdAt: timestamp({ precision: 6, withTimezone: true }).notNull(),
+
+    // LLM-generated lexical fallback query; null when fallback was not applied.
+    lexicalQuery: text(),
+
+    // Retrieval diagnostics; null for traces created before this metadata existed.
+    retrievalMetadata: jsonb().$type<RagTraceRetrievalMetadata>(),
   },
   (table) => [
     // One successful Trace per assistant message

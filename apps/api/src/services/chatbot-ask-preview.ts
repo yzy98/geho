@@ -82,6 +82,7 @@ export const askChatbotPreview = async ({
     retrievedChunks: generated.retrievedChunks,
     latencyMs: generated.latencyMs,
     lexicalQuery: generated.lexicalQuery,
+    retrievalMetadata: generated.retrievalMetadata,
     createdAt: now,
   });
 
