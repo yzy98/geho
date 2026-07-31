@@ -90,7 +90,7 @@ export const createKnowledgeSourcesRoute = ({
           return c.json(knowledgeBaseNotFoundResponse, 404);
         }
 
-        startKnowledgeSourceIngestion({
+        await startKnowledgeSourceIngestion({
           sourceId: result.source.id,
           organizationId: organization.id,
         });

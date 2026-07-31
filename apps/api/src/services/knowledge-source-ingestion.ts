@@ -1,32 +1,22 @@
-import type { CreateEmbeddingModel } from "@geho/ai";
-import type { DbClient } from "@geho/db";
-import { processKnowledgeSource } from "./knowledge-source-processing";
+import {
+  type KnowledgeSourceProcessingJob,
+  knowledgeSourceProcessingJobSchema,
+  processKnowledgeSourceJobName,
+} from "@geho/shared";
+import type { Queue } from "bullmq";
 
-export type StartKnowledgeSourceIngestion = (options: {
-  sourceId: string;
-  organizationId: string;
-}) => void;
+export type StartKnowledgeSourceIngestion = (
+  payload: KnowledgeSourceProcessingJob
+) => Promise<void>;
 
-export const createInProcessKnowledgeSourceIngestionStarter =
-  ({
-    db,
-    encryptionKey,
-    createEmbeddingModel,
-    onError = console.error,
-  }: {
-    db: DbClient;
-    encryptionKey: Uint8Array;
-    createEmbeddingModel: CreateEmbeddingModel;
-    onError?: (error: unknown) => void;
-  }): StartKnowledgeSourceIngestion =>
-  ({ sourceId, organizationId }) => {
-    queueMicrotask(() => {
-      processKnowledgeSource({
-        db,
-        encryptionKey,
-        createEmbeddingModel,
-        sourceId,
-        organizationId,
-      }).catch(onError);
+type KnowledgeSourceQueue = Pick<Queue<KnowledgeSourceProcessingJob>, "add">;
+
+export const createKnowledgeSourceIngestionStarter =
+  ({ queue }: { queue: KnowledgeSourceQueue }): StartKnowledgeSourceIngestion =>
+  async (payload) => {
+    const parsedPayload = knowledgeSourceProcessingJobSchema.parse(payload);
+
+    await queue.add(processKnowledgeSourceJobName, parsedPayload, {
+      jobId: parsedPayload.sourceId,
     });
   };

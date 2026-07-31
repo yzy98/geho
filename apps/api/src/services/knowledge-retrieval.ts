@@ -1,4 +1,5 @@
 import { createEmbeddingModel, rewriteLexicalQuery } from "@geho/ai";
+import { decryptApiKey } from "@geho/crypto";
 import type { DbClient } from "@geho/db";
 import { and, eq } from "@geho/db/helper";
 import {
@@ -7,7 +8,6 @@ import {
   type RagTraceRetrievalMetadata,
 } from "@geho/db/schema";
 import type { LanguageModel } from "ai";
-import { decryptApiKey } from "../lib/api-key-encryption";
 import {
   type RetrievedChunk,
   type RetrievedChunkBase,

@@ -4,6 +4,7 @@ import {
   type RagAnswerStream,
   streamRagAnswer,
 } from "@geho/ai";
+import { decryptApiKey } from "@geho/crypto";
 import type { DbClient } from "@geho/db";
 import { and, eq } from "@geho/db/helper";
 import {
@@ -15,7 +16,6 @@ import {
 } from "@geho/db/schema";
 import type { RagHistoryMessage } from "@geho/rag";
 import type { LanguageModel } from "ai";
-import { decryptApiKey } from "../lib/api-key-encryption";
 import { retrieveKnowledgeChunks } from "./knowledge-retrieval";
 
 const NO_KNOWLEDGE_ANSWER =

@@ -26,9 +26,6 @@ const encryptionKeySchema = z.string().transform((value, context) => {
 });
 
 const envSchema = z.object({
-  API_PORT: z.coerce.number().int().min(1).max(65_535),
-  API_URL: z.url(),
-  APP_URL: z.url(),
   DATABASE_URL: z.url({
     protocol: /^postgres(?:ql)?$/,
   }),
@@ -36,7 +33,6 @@ const envSchema = z.object({
     protocol: /^redis(?:ql)?$/,
   }),
   APP_ENCRYPTION_KEY: encryptionKeySchema,
-  BETTER_AUTH_SECRET: z.string().min(32),
 });
 
 const result = envSchema.safeParse(process.env);

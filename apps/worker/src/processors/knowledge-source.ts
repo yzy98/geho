@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { type CreateEmbeddingModel, EMBEDDING_DIMENSIONS } from "@geho/ai";
+import { decryptApiKey } from "@geho/crypto";
 import type { DbClient } from "@geho/db";
 import { and, eq } from "@geho/db/helper";
 import {
@@ -9,7 +10,6 @@ import {
   modelProvider,
 } from "@geho/db/schema";
 import { type Chunk, getChunks } from "@geho/rag";
-import { decryptApiKey } from "../lib/api-key-encryption";
 
 const SOURCE_ERROR = {
   EMPTY_CONTENT: "EMPTY_CONTENT",
