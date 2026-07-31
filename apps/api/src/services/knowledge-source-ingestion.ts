@@ -1,22 +1,24 @@
-import {
-  type KnowledgeSourceProcessingJob,
-  knowledgeSourceProcessingJobSchema,
-  processKnowledgeSourceJobName,
-} from "@geho/shared";
-import type { Queue } from "bullmq";
+import type { KnowledgeSourceProcessingJob } from "@geho/shared";
 
 export type StartKnowledgeSourceIngestion = (
   payload: KnowledgeSourceProcessingJob
 ) => Promise<void>;
 
-type KnowledgeSourceQueue = Pick<Queue<KnowledgeSourceProcessingJob>, "add">;
+type EnqueueKnowledgeSourceJob = (
+  payload: KnowledgeSourceProcessingJob,
+  options: {
+    jobId: string;
+  }
+) => Promise<unknown>;
 
 export const createKnowledgeSourceIngestionStarter =
-  ({ queue }: { queue: KnowledgeSourceQueue }): StartKnowledgeSourceIngestion =>
+  ({
+    enqueue,
+  }: {
+    enqueue: EnqueueKnowledgeSourceJob;
+  }): StartKnowledgeSourceIngestion =>
   async (payload) => {
-    const parsedPayload = knowledgeSourceProcessingJobSchema.parse(payload);
-
-    await queue.add(processKnowledgeSourceJobName, parsedPayload, {
-      jobId: parsedPayload.sourceId,
+    await enqueue(payload, {
+      jobId: payload.sourceId,
     });
   };

@@ -1,23 +1,18 @@
 import { createAuthServer } from "@geho/auth/server";
 import { createDb } from "@geho/db";
+import { createQueue } from "@geho/queue/queue";
 import {
-  type KnowledgeSourceProcessingJob,
+  knowledgeSourceProcessingJobSchema,
   knowledgeSourceProcessingQueueName,
+  processKnowledgeSourceJobName,
 } from "@geho/shared";
 import { serve } from "@hono/node-server";
-import { Queue } from "bullmq";
-import IORedis from "ioredis";
 import { createApp } from "./app";
 import { env } from "./env";
 import { createKnowledgeSourceIngestionStarter } from "./services/knowledge-source-ingestion";
 
 // Create db instance
 const database = createDb(env.DATABASE_URL);
-
-// Create Redis connection
-const redisConnection = new IORedis(env.REDIS_URL, {
-  maxRetriesPerRequest: 1,
-});
 
 // Create auth instance
 const auth = createAuthServer({
@@ -27,15 +22,17 @@ const auth = createAuthServer({
   trustedOrigins: [env.APP_URL],
 });
 
-const knowledgeSourceQueue = new Queue<KnowledgeSourceProcessingJob>(
-  knowledgeSourceProcessingQueueName,
-  {
-    connection: redisConnection,
-  }
-);
+// Create a Queue
+const { enqueue: enqueueKnowledgeSource, close: closeKnowledgeSourceQueue } =
+  createQueue({
+    redisURL: env.REDIS_URL,
+    queueName: knowledgeSourceProcessingQueueName,
+    jobName: processKnowledgeSourceJobName,
+    payloadSchema: knowledgeSourceProcessingJobSchema,
+  });
 
 const startKnowledgeSourceIngestion = createKnowledgeSourceIngestionStarter({
-  queue: knowledgeSourceQueue,
+  enqueue: enqueueKnowledgeSource,
 });
 
 // Create Hono instance
@@ -56,14 +53,14 @@ const server = serve(
   }
 );
 
-async function shutdown() {
+const shutdown = async () => {
   server.close();
-  await knowledgeSourceQueue.close();
-  if (redisConnection.status !== "end") {
-    await redisConnection.quit();
+  try {
+    await closeKnowledgeSourceQueue();
+  } finally {
+    await database.close();
   }
-  await database.close();
-}
+};
 
 process.once("SIGINT", shutdown);
 process.once("SIGTERM", shutdown);

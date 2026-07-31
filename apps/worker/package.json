@@ -13,11 +13,10 @@
     "@geho/ai": "workspace:*",
     "@geho/crypto": "workspace:*",
     "@geho/db": "workspace:*",
+    "@geho/queue": "workspace:*",
     "@geho/rag": "workspace:*",
     "@geho/shared": "workspace:*",
-    "bullmq": "^6.0.1",
     "dotenv": "catalog:",
-    "ioredis": "^5.11.1",
     "zod": "catalog:"
   },
   "devDependencies": {
