@@ -12,3 +12,9 @@ export const knowledgeSourceProcessingJobSchema = z.object({
 export type KnowledgeSourceProcessingJob = z.output<
   typeof knowledgeSourceProcessingJobSchema
 >;
+
+export const knowledgeSourceIngestionRequestedEventType =
+  "knowledge_source.ingestion_requested";
+
+export const knowledgeSourceIngestionRequestedPayloadSchema =
+  knowledgeSourceProcessingJobSchema;

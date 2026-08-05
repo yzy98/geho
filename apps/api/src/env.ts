@@ -32,9 +32,6 @@ const envSchema = z.object({
   DATABASE_URL: z.url({
     protocol: /^postgres(?:ql)?$/,
   }),
-  REDIS_URL: z.url({
-    protocol: /^redis(?:ql)?$/,
-  }),
   APP_ENCRYPTION_KEY: encryptionKeySchema,
   BETTER_AUTH_SECRET: z.string().min(32),
 });

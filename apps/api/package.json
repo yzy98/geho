@@ -19,7 +19,6 @@
     "@geho/auth": "workspace:*",
     "@geho/crypto": "workspace:*",
     "@geho/db": "workspace:*",
-    "@geho/queue": "workspace:*",
     "@geho/rag": "workspace:*",
     "@geho/shared": "workspace:*",
     "@hono/node-server": "^2.0.5",
