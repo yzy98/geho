@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { type CreateEmbeddingModel, EMBEDDING_DIMENSIONS } from "@geho/ai";
 import { decryptApiKey } from "@geho/crypto";
 import type { DbClient } from "@geho/db";
-import { and, eq } from "@geho/db/helper";
+import { and, eq, isNull, ne, or } from "@geho/db/helper";
 import {
   knowledgeBase,
   knowledgeChunk,
@@ -25,12 +25,18 @@ const SOURCE_ERROR_MESSAGE = {
   UNSUPPORTED_EMBEDDING_MODEL: "Embedding model is unsupported.",
 } as const;
 
+export type ProcessingOwner = {
+  jobId: string;
+  token: string;
+};
+
 export type ProcessKnowledgeSourceOptions = {
   db: DbClient;
   encryptionKey: Uint8Array;
   createEmbeddingModel: CreateEmbeddingModel;
   organizationId: string;
   sourceId: string;
+  processingOwner: ProcessingOwner;
 };
 
 const sourceProcessingSelection = {
@@ -42,14 +48,16 @@ const sourceProcessingSelection = {
   rawContent: knowledgeSource.rawContent,
 };
 
-const claimPendingSourceForProcessing = async ({
+const claimSourceForProcessing = async ({
   db,
   sourceId,
   organizationId,
+  processingOwner,
 }: {
   db: DbClient;
   sourceId: string;
   organizationId: string;
+  processingOwner: ProcessingOwner;
 }) => {
   const now = new Date();
 
@@ -57,6 +65,8 @@ const claimPendingSourceForProcessing = async ({
     .update(knowledgeSource)
     .set({
       status: "processing",
+      processingJobId: processingOwner.jobId,
+      processingToken: processingOwner.token,
       updatedAt: now,
       errorCode: null,
       errorMessage: null,
@@ -65,7 +75,26 @@ const claimPendingSourceForProcessing = async ({
       and(
         eq(knowledgeSource.organizationId, organizationId),
         eq(knowledgeSource.id, sourceId),
-        eq(knowledgeSource.status, "pending")
+        or(
+          eq(knowledgeSource.status, "pending"),
+
+          // Recover an old processing row that predates ownership fields.
+          and(
+            eq(knowledgeSource.status, "processing"),
+            isNull(knowledgeSource.processingJobId),
+            isNull(knowledgeSource.processingToken)
+          ),
+
+          // Reclaim the same BullMQ job with a new lock token.
+          and(
+            eq(knowledgeSource.status, "processing"),
+            eq(knowledgeSource.processingJobId, processingOwner.jobId),
+            or(
+              isNull(knowledgeSource.processingToken),
+              ne(knowledgeSource.processingToken, processingOwner.token)
+            )
+          )
+        )
       )
     )
     .returning(sourceProcessingSelection);
@@ -73,22 +102,49 @@ const claimPendingSourceForProcessing = async ({
   return rows[0] ?? null;
 };
 
-const markSourceFailed = async ({
+const markSourceFailed = ({
   db,
   sourceId,
   organizationId,
+  processingOwner,
   errorCode,
   errorMessage,
 }: {
   db: DbClient;
   sourceId: string;
   organizationId: string;
+  processingOwner: ProcessingOwner;
   errorCode: string;
   errorMessage: string;
-}) => {
-  const now = new Date();
+}): Promise<boolean> =>
+  db.transaction(async (tx) => {
+    const rows = await tx
+      .update(knowledgeSource)
+      .set({
+        status: "failed",
+        processingJobId: null,
+        processingToken: null,
+        errorCode,
+        errorMessage,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(knowledgeSource.organizationId, organizationId),
+          eq(knowledgeSource.id, sourceId),
+          eq(knowledgeSource.status, "processing"),
+          eq(knowledgeSource.processingJobId, processingOwner.jobId),
+          eq(knowledgeSource.processingToken, processingOwner.token)
+        )
+      )
+      .returning({
+        id: knowledgeSource.id,
+      });
 
-  await db.transaction(async (tx) => {
+    if (!rows[0]) {
+      return false;
+    }
+
     await tx
       .delete(knowledgeChunk)
       .where(
@@ -98,39 +154,74 @@ const markSourceFailed = async ({
         )
       );
 
-    await tx
-      .update(knowledgeSource)
-      .set({
-        status: "failed",
-        errorCode,
-        errorMessage,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(knowledgeSource.organizationId, organizationId),
-          eq(knowledgeSource.id, sourceId)
-        )
-      );
+    return true;
   });
-};
 
-const markSourceReady = async ({
+const markSourceReady = ({
   db,
   sourceId,
   organizationId,
+  processingOwner,
   chunks,
   embeddings,
 }: {
   db: DbClient;
   sourceId: string;
   organizationId: string;
+  processingOwner: ProcessingOwner;
   chunks: Chunk[];
   embeddings: number[][];
-}) => {
+}): Promise<boolean> => {
   const now = new Date();
 
-  await db.transaction(async (tx) => {
+  // Re-insert knowledge chunks
+  const chunkRows = chunks.map((chunk, index) => {
+    const embedding = embeddings[index];
+
+    if (!embedding) {
+      throw new Error("Validated embedding batch is missing an embedding");
+    }
+
+    return {
+      id: randomUUID(),
+      organizationId,
+      sourceId,
+      chunkIndex: chunk.chunkIndex,
+      content: chunk.content,
+      embedding,
+      createdAt: now,
+    };
+  });
+
+  return db.transaction(async (tx) => {
+    // Acquire the right to commit before touching chunks.
+    const rows = await tx
+      .update(knowledgeSource)
+      .set({
+        status: "ready",
+        processingJobId: null,
+        processingToken: null,
+        errorCode: null,
+        errorMessage: null,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(knowledgeSource.organizationId, organizationId),
+          eq(knowledgeSource.id, sourceId),
+          eq(knowledgeSource.status, "processing"),
+          eq(knowledgeSource.processingJobId, processingOwner.jobId),
+          eq(knowledgeSource.processingToken, processingOwner.token)
+        )
+      )
+      .returning({
+        id: knowledgeSource.id,
+      });
+
+    if (!rows[0]) {
+      return false;
+    }
+
     // Delete matched knowledge chunks if any
     await tx
       .delete(knowledgeChunk)
@@ -141,42 +232,9 @@ const markSourceReady = async ({
         )
       );
 
-    // Re-insert knowledge chunks
-    const chunkRows = chunks.map((chunk, index) => {
-      const embedding = embeddings[index];
-
-      if (!embedding) {
-        throw new Error("Validated embedding batch is missing an embedding");
-      }
-
-      return {
-        id: randomUUID(),
-        organizationId,
-        sourceId,
-        chunkIndex: chunk.chunkIndex,
-        content: chunk.content,
-        embedding,
-        createdAt: now,
-      };
-    });
-
     await tx.insert(knowledgeChunk).values(chunkRows);
 
-    // Mark knowledge source status ready
-    await tx
-      .update(knowledgeSource)
-      .set({
-        status: "ready",
-        errorCode: null,
-        errorMessage: null,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(knowledgeSource.organizationId, organizationId),
-          eq(knowledgeSource.id, sourceId)
-        )
-      );
+    return true;
   });
 };
 
@@ -236,12 +294,14 @@ export const processKnowledgeSource = async ({
   createEmbeddingModel,
   organizationId,
   sourceId,
+  processingOwner,
 }: ProcessKnowledgeSourceOptions): Promise<void> => {
-  // Mark the current pending knowledge source as processing
-  const source = await claimPendingSourceForProcessing({
+  // Mark the current knowledge source as processing
+  const source = await claimSourceForProcessing({
     db,
     organizationId,
     sourceId,
+    processingOwner,
   });
 
   if (!source) {
@@ -257,6 +317,7 @@ export const processKnowledgeSource = async ({
         db,
         sourceId,
         organizationId,
+        processingOwner,
         errorCode: SOURCE_ERROR.EMPTY_CONTENT,
         errorMessage: SOURCE_ERROR_MESSAGE.EMPTY_CONTENT,
       });
@@ -275,6 +336,7 @@ export const processKnowledgeSource = async ({
         db,
         sourceId,
         organizationId,
+        processingOwner,
         errorCode: SOURCE_ERROR.EMBEDDING_PROVIDER_FAILED,
         errorMessage: SOURCE_ERROR_MESSAGE.EMBEDDING_PROVIDER_FAILED,
       });
@@ -311,6 +373,7 @@ export const processKnowledgeSource = async ({
         db,
         sourceId,
         organizationId,
+        processingOwner,
         errorCode: SOURCE_ERROR.INVALID_EMBEDDING_BATCH,
         errorMessage: SOURCE_ERROR_MESSAGE.INVALID_EMBEDDING_BATCH,
       });
@@ -321,6 +384,7 @@ export const processKnowledgeSource = async ({
       db,
       sourceId,
       organizationId,
+      processingOwner,
       embeddings,
       chunks,
     });
@@ -333,6 +397,7 @@ export const processKnowledgeSource = async ({
       db,
       sourceId,
       organizationId,
+      processingOwner,
       errorCode: isUnsupportedModel
         ? SOURCE_ERROR.UNSUPPORTED_EMBEDDING_MODEL
         : SOURCE_ERROR.EMBEDDING_PROVIDER_FAILED,

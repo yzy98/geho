@@ -7,13 +7,18 @@ import {
 import type z from "zod";
 import { createRedisConnection } from "./redis-connection";
 
+export type OwnedWorkerJob<TData> = Job<TData, void> & {
+  id: string;
+  token: string;
+};
+
 export type CreateWorkerOptions<TSchema extends z.ZodType> = {
   redisURL: string;
   queueName: string;
   payloadSchema: TSchema;
   processor: (
     payload: z.output<TSchema>,
-    job: Job<z.input<TSchema>, void>
+    job: OwnedWorkerJob<z.input<TSchema>>
   ) => Promise<void>;
   options?: Omit<WorkerOptions, "connection">;
 };
@@ -37,14 +42,25 @@ export const createWorker = <TSchema extends z.ZodType>({
 
   const worker = new Worker<z.input<TSchema>, void>(
     queueName,
-    async (job) => {
+    async (job, token) => {
       const payload = payloadSchema.safeParse(job.data);
 
       if (!payload.success) {
         throw new UnrecoverableError("Invalid job payload");
       }
 
-      await processor(payload.data, job);
+      if (!(job.id && token)) {
+        throw new UnrecoverableError(
+          "BullMQ job ownership metadata is missing"
+        );
+      }
+
+      const ownedJob: OwnedWorkerJob<z.input<TSchema>> = Object.assign(job, {
+        id: job.id,
+        token,
+      });
+
+      await processor(payload.data, ownedJob);
     },
     {
       ...options,

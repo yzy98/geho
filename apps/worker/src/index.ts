@@ -18,13 +18,17 @@ const { worker, close: closeWorker } = createWorker({
   options: {
     concurrency: 2,
   },
-  processor: (payload) =>
+  processor: (payload, job) =>
     processKnowledgeSource({
       db: database.db,
       encryptionKey: env.APP_ENCRYPTION_KEY,
       sourceId: payload.sourceId,
       organizationId: payload.organizationId,
       createEmbeddingModel,
+      processingOwner: {
+        jobId: job.id,
+        token: job.token,
+      },
     }),
 });
 
@@ -44,6 +48,12 @@ worker.on("failed", (job, error) => {
     organizationId: job?.data?.organizationId,
     attempts: job?.attemptsMade,
     error: error.message,
+  });
+});
+
+worker.on("stalled", (jobId) => {
+  console.warn("knowledge-source job stalled", {
+    jobId,
   });
 });
 
