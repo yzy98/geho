@@ -30,7 +30,7 @@ const envSchema = z.object({
     protocol: /^postgres(?:ql)?$/,
   }),
   REDIS_URL: z.url({
-    protocol: /^redis(?:ql)?$/,
+    protocol: /^rediss?$/,
   }),
   APP_ENCRYPTION_KEY: encryptionKeySchema,
 });
