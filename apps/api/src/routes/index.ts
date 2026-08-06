@@ -10,7 +10,6 @@ export const createApiRoutes = ({
   auth,
   db,
   encryptionKey,
-  startKnowledgeSourceIngestion,
 }: RouteDependencies) =>
   new Hono()
     // Auth route
@@ -28,7 +27,6 @@ export const createApiRoutes = ({
         auth,
         db,
         encryptionKey,
-        startKnowledgeSourceIngestion,
       })
     )
     .route("/chatbots", createChatbotRoutes({ auth, db, encryptionKey }))

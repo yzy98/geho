@@ -32,10 +32,10 @@ const server = serve(
   }
 );
 
-async function shutdown() {
+const shutdown = async () => {
   server.close();
   await database.close();
-}
+};
 
 process.once("SIGINT", shutdown);
 process.once("SIGTERM", shutdown);

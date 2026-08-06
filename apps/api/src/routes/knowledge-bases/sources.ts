@@ -8,7 +8,7 @@ import {
   knowledgeSourcesParamsSchema,
 } from "../../schemas/knowledge-sources";
 import {
-  createKnowledgeSource,
+  createKnowledgeSourceAndRequestIngestion,
   listKnowledgeSources,
 } from "../../services/knowledge-sources";
 import type { RouteDependencies } from "../types";
@@ -16,7 +16,7 @@ import { jsonValidator, paramValidator } from "../validators";
 
 type CreateKnowledgeSourcesRouteOptions = Pick<
   RouteDependencies,
-  "auth" | "db" | "startKnowledgeSourceIngestion"
+  "auth" | "db"
 >;
 
 const knowledgeSourcesParamsValidator = paramValidator({
@@ -37,7 +37,6 @@ const knowledgeBaseNotFoundResponse = {
 export const createKnowledgeSourcesRoute = ({
   auth,
   db,
-  startKnowledgeSourceIngestion,
 }: CreateKnowledgeSourcesRouteOptions) =>
   new Hono<AppEnv>()
     .use("*", requireAuth(auth))
@@ -79,7 +78,7 @@ export const createKnowledgeSourcesRoute = ({
         const { knowledgeBaseId } = c.req.valid("param");
         const input = c.req.valid("json");
 
-        const result = await createKnowledgeSource({
+        const result = await createKnowledgeSourceAndRequestIngestion({
           db,
           input,
           knowledgeBaseId,
@@ -89,11 +88,6 @@ export const createKnowledgeSourcesRoute = ({
         if (result.status === "knowledge_base_not_found") {
           return c.json(knowledgeBaseNotFoundResponse, 404);
         }
-
-        startKnowledgeSourceIngestion({
-          sourceId: result.source.id,
-          organizationId: organization.id,
-        });
 
         return c.json(
           {

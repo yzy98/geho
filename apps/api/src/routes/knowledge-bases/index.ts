@@ -6,20 +6,19 @@ import { createKnowledgeSourcesRoute } from "./sources";
 
 type CreateKnowledgeBaseRoutesOptions = Pick<
   RouteDependencies,
-  "auth" | "db" | "encryptionKey" | "startKnowledgeSourceIngestion"
+  "auth" | "db" | "encryptionKey"
 >;
 
 export const createKnowledgeBaseRoutes = ({
   auth,
   db,
   encryptionKey,
-  startKnowledgeSourceIngestion,
 }: CreateKnowledgeBaseRoutesOptions) =>
   new Hono()
     .route("/", createKnowledgeBaseCollectionRoute({ auth, db }))
     .route(
       "/:knowledgeBaseId/sources",
-      createKnowledgeSourcesRoute({ auth, db, startKnowledgeSourceIngestion })
+      createKnowledgeSourcesRoute({ auth, db })
     )
     .route(
       "/:knowledgeBaseId/retrieval-preview",

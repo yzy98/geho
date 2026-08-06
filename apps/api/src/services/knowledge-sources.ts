@@ -5,13 +5,17 @@ import {
   knowledgeBase,
   knowledgeChunk,
   knowledgeSource,
+  outboxEvent,
 } from "@geho/db/schema";
+import { knowledgeSourceIngestionRequestedEventType } from "@geho/shared";
 import type {
   CreateTextKnowledgeSourceInput,
   KnowledgeSourceDto,
 } from "../schemas/knowledge-sources";
 
-export type CreateKnowledgeSourceOptions = {
+type DbTransaction = Parameters<Parameters<DbClient["transaction"]>[0]>[0];
+
+export type CreateKnowledgeSourceAndRequestIngestionOptions = {
   db: DbClient;
   input: CreateTextKnowledgeSourceInput;
   knowledgeBaseId: string;
@@ -24,7 +28,7 @@ export type ListKnowledgeSourcesOptions = {
   organizationId: string;
 };
 
-export type CreateKnowledgeSourceResult =
+export type CreateKnowledgeSourceAndRequestIngestionResult =
   | {
       status: "created";
       source: KnowledgeSourceDto;
@@ -58,7 +62,7 @@ const knowledgeBaseExists = async ({
   knowledgeBaseId,
   organizationId,
 }: {
-  db: DbClient;
+  db: DbClient | DbTransaction;
   knowledgeBaseId: string;
   organizationId: string;
 }) => {
@@ -151,53 +155,69 @@ export const listKnowledgeSources = async ({
   };
 };
 
-export const createKnowledgeSource = async ({
+export const createKnowledgeSourceAndRequestIngestion = ({
   db,
   input,
   knowledgeBaseId,
   organizationId,
-}: CreateKnowledgeSourceOptions): Promise<CreateKnowledgeSourceResult> => {
-  // Check if the provided knowledge base exists
-  const exists = await knowledgeBaseExists({
-    db,
-    knowledgeBaseId,
-    organizationId,
-  });
+}: CreateKnowledgeSourceAndRequestIngestionOptions): Promise<CreateKnowledgeSourceAndRequestIngestionResult> =>
+  db.transaction(
+    async (tx): Promise<CreateKnowledgeSourceAndRequestIngestionResult> => {
+      // Check if the provided knowledge base exists
+      const exists = await knowledgeBaseExists({
+        db: tx,
+        knowledgeBaseId,
+        organizationId,
+      });
 
-  if (!exists) {
-    return {
-      status: "knowledge_base_not_found",
-    };
-  }
+      if (!exists) {
+        return {
+          status: "knowledge_base_not_found",
+        };
+      }
 
-  // Insert into db
-  const now = new Date();
+      // Insert into db
+      const now = new Date();
+      const sourceId = randomUUID();
 
-  const insertedSources = await db
-    .insert(knowledgeSource)
-    .values({
-      id: randomUUID(),
-      organizationId,
-      knowledgeBaseId,
-      title: input.title,
-      rawContent: input.content,
-      status: "pending",
-      createdAt: now,
-      updatedAt: now,
-    })
-    .returning(sourceSelection);
+      const insertedSources = await tx
+        .insert(knowledgeSource)
+        .values({
+          id: sourceId,
+          organizationId,
+          knowledgeBaseId,
+          title: input.title,
+          rawContent: input.content,
+          status: "pending",
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning(sourceSelection);
 
-  const insertedSource = insertedSources[0];
+      const source = insertedSources[0];
 
-  if (!insertedSource) {
-    throw new Error("Knowledge source insert returned no record");
-  }
+      if (!source) {
+        throw new Error("Knowledge source insert returned no record");
+      }
 
-  return {
-    status: "created",
-    source: {
-      ...insertedSource,
-      chunkCount: 0,
-    },
-  };
-};
+      await tx.insert(outboxEvent).values({
+        id: randomUUID(),
+        eventType: knowledgeSourceIngestionRequestedEventType,
+        payload: {
+          sourceId,
+          organizationId,
+        },
+        attemptCount: 0,
+        nextAttemptAt: now,
+        createdAt: now,
+      });
+
+      return {
+        status: "created",
+        source: {
+          ...source,
+          chunkCount: 0,
+        },
+      };
+    }
+  );

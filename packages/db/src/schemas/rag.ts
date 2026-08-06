@@ -32,6 +32,8 @@ export const knowledgeSource = pgTable(
     title: text().notNull(),
     rawContent: text().notNull(),
     status: knowledgeSourceStatus().notNull().default("pending"),
+    processingJobId: text(),
+    processingToken: text(),
     errorCode: text(),
     errorMessage: text(),
     createdAt: timestamp({ precision: 6, withTimezone: true }).notNull(),
@@ -80,6 +82,32 @@ export const knowledgeSource = pgTable(
           ${table.status} <> 'failed'
           AND ${table.errorCode} IS NULL
           AND ${table.errorMessage} IS NULL
+        )
+      `
+    ),
+
+    check(
+      "knowledge_source_processing_owner_check",
+      sql`
+        (
+          ${table.status} = 'processing'
+          AND (
+            (
+              ${table.processingJobId} IS NULL
+              AND ${table.processingToken} IS NULL
+            )
+            OR
+            (
+              ${table.processingJobId} IS NOT NULL
+              AND ${table.processingToken} IS NOT NULL
+            )
+          )
+        )
+        OR
+        (
+          ${table.status} <> 'processing'
+          AND ${table.processingJobId} IS NULL
+          AND ${table.processingToken} IS NULL
         )
       `
     ),

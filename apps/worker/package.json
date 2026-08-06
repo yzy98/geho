@@ -1,37 +1,27 @@
 {
-  "name": "@geho/api",
+  "name": "@geho/worker",
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "exports": {
-    ".": "./src/index.ts",
-    "./app": "./src/app.ts"
-  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsup src/index.ts --format esm --clean",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@geho/ai": "workspace:*",
-    "@geho/auth": "workspace:*",
     "@geho/crypto": "workspace:*",
     "@geho/db": "workspace:*",
+    "@geho/queue": "workspace:*",
     "@geho/rag": "workspace:*",
     "@geho/shared": "workspace:*",
-    "@hono/node-server": "^2.0.5",
-    "@hono/zod-validator": "^0.8.0",
-    "ai": "catalog:",
     "dotenv": "catalog:",
-    "hono": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "tsup": "catalog:",
-    "tsx": "catalog:",
-    "vitest": "catalog:"
+    "tsx": "catalog:"
   }
 }
