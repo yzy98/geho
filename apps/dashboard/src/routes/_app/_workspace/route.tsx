@@ -30,5 +30,9 @@ export const Route = createFileRoute("/_app/_workspace")({
 });
 
 function WorkspaceLayout() {
-  return <Outlet />;
+  return (
+    <div className="mx-auto w-full max-w-7xl">
+      <Outlet />
+    </div>
+  );
 }
