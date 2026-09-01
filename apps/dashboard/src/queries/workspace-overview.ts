@@ -24,6 +24,12 @@ export const workspaceOverviewQueryOptions = (organizationId: string) =>
     queryKey: workspaceOverviewQueryKey(organizationId),
     queryFn: ({ signal }) => getWorkspaceOverview(signal),
     staleTime: 30_000,
+    refetchInterval: (query) => {
+      const sources = query.state.data?.overview.stats.sources;
+      const hasActiveIngestion =
+        (sources?.pending ?? 0) > 0 || (sources?.processing ?? 0) > 0;
+      return hasActiveIngestion ? 20_000 : false;
+    },
   });
 
 export type WorkspaceOverview = Awaited<
