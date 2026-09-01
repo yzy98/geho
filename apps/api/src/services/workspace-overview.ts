@@ -67,12 +67,12 @@ const createSourceCounts = (): SourceCounts => ({
 const getIngestionStatus = (
   sources: SourceCounts
 ): KnowledgeBaseIngestionStatus => {
-  if (sources.pending > 0 || sources.processing > 0) {
-    return "processing";
-  }
-
   if (sources.failed > 0) {
     return "needs_attention";
+  }
+
+  if (sources.pending > 0 || sources.processing > 0) {
+    return "processing";
   }
 
   if (sources.ready > 0) {
