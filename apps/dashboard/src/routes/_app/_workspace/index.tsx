@@ -192,7 +192,7 @@ function HomePage() {
           </p>
         </div>
 
-        <Button render={<Link to="/chatbots" />} size="lg">
+        <Button nativeButton={false} render={<Link to="/chatbots" />} size="lg">
           <PlusIcon data-icon="inline-start" />
           Create chatbot
         </Button>
@@ -263,6 +263,7 @@ function HomePage() {
           <CardContent className="flex flex-col gap-2">
             <Button
               className="justify-start"
+              nativeButton={false}
               render={<Link to="/knowledge-bases" />}
               variant="outline"
             >
@@ -271,6 +272,7 @@ function HomePage() {
             </Button>
             <Button
               className="justify-start"
+              nativeButton={false}
               render={<Link to="/models" />}
               variant="outline"
             >
@@ -279,6 +281,7 @@ function HomePage() {
             </Button>
             <Button
               className="justify-start"
+              nativeButton={false}
               render={<Link to="/members" />}
               variant="outline"
             >
@@ -299,7 +302,11 @@ function HomePage() {
               Your most recently created knowledge collections.
             </p>
           </div>
-          <Button render={<Link to="/knowledge-bases" />} variant="ghost">
+          <Button
+            nativeButton={false}
+            render={<Link to="/knowledge-bases" />}
+            variant="ghost"
+          >
             View all
             <ArrowRightIcon data-icon="inline-end" />
           </Button>

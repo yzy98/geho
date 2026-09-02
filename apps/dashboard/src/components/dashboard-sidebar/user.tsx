@@ -27,11 +27,11 @@ import {
 } from "lucide-react";
 import { useSignOut } from "@/hooks/use-sign-out";
 
-interface UserNavProps {
+interface UserProps {
   user: NonNullable<ReturnType<AuthClient["useSession"]>["data"]>["user"];
 }
 
-export const UserNav = ({ user }: UserNavProps) => {
+export const User = ({ user }: UserProps) => {
   const { isMobile } = useSidebar();
   const { isSigningOut, signOut } = useSignOut();
 
