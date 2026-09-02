@@ -8,18 +8,20 @@ import {
   SidebarMenuItem,
 } from "@geho/ui/components/sidebar";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation, useRouteContext } from "@tanstack/react-router";
-import { organizationQueryOptions } from "@/queries/organization";
+import { Link, useRouteContext } from "@tanstack/react-router";
 import {
-  MembershipRequiredNav,
-  OnboardingNav,
-  PendingNav,
-  WorkspaceNav,
-} from "./nav";
-import { UserNav } from "./user-nav";
+  BotIcon,
+  BrainCircuitIcon,
+  Building2Icon,
+  KeyRoundIcon,
+  LayoutDashboardIcon,
+  UsersIcon,
+} from "lucide-react";
+import { organizationQueryOptions } from "@/queries/organization";
+import { type Item, Main } from "./main";
+import { User } from "./user";
 
 export const DashboardSidebar = () => {
-  const location = useLocation();
   const { session } = useRouteContext({ from: "/_app" });
   const { data: organizationResult } = useQuery(organizationQueryOptions());
 
@@ -42,21 +44,17 @@ export const DashboardSidebar = () => {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <DashboardSidebarNav
-          organizationStatus={organizationResult?.status}
-          pathname={location.pathname}
-        />
+        <DashboardSidebarMain organizationStatus={organizationResult?.status} />
       </SidebarContent>
       <SidebarFooter>
-        <UserNav user={session.user} />
+        <User user={session.user} />
       </SidebarFooter>
     </Sidebar>
   );
 };
 
-function DashboardSidebarNav({
+function DashboardSidebarMain({
   organizationStatus,
-  pathname,
 }: {
   organizationStatus:
     | "error"
@@ -64,19 +62,54 @@ function DashboardSidebarNav({
     | "ok"
     | "onboarding_required"
     | undefined;
-  pathname: string;
 }) {
+  let items: Item[] = [];
+
   if (organizationStatus === "ok") {
-    return <WorkspaceNav pathname={pathname} />;
+    items = [
+      {
+        title: "Overview",
+        icon: LayoutDashboardIcon,
+        path: "/",
+      },
+      {
+        title: "Models",
+        icon: KeyRoundIcon,
+        path: "/models",
+      },
+      {
+        title: "Knowledge Bases",
+        icon: BrainCircuitIcon,
+        path: "/knowledge-bases",
+      },
+      {
+        title: "Chatbots",
+        icon: BotIcon,
+        path: "/chatbots",
+      },
+      {
+        title: "Members",
+        icon: UsersIcon,
+        path: "/members",
+      },
+    ];
+  } else if (organizationStatus === "onboarding_required") {
+    items = [
+      {
+        title: "Onboarding",
+        icon: Building2Icon,
+        path: "/onboarding",
+      },
+    ];
+  } else if (organizationStatus === "membership_required") {
+    items = [
+      {
+        title: "Need invitation",
+        icon: Building2Icon,
+        disabled: true,
+      },
+    ];
   }
 
-  if (organizationStatus === "onboarding_required") {
-    return <OnboardingNav pathname={pathname} />;
-  }
-
-  if (organizationStatus === "membership_required") {
-    return <MembershipRequiredNav />;
-  }
-
-  return <PendingNav />;
+  return <Main items={items} />;
 }
