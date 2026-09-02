@@ -13,9 +13,10 @@ import type { FileRouteTypes } from "@/routeTree.gen";
 type RoutePath = FileRouteTypes["to"];
 
 export type Item = {
+  disabled?: boolean;
   icon: LucideIcon;
+  path?: RoutePath;
   title: string;
-  path: RoutePath;
 };
 
 type MainProps = {
@@ -39,8 +40,13 @@ export const Main = ({ items }: MainProps) => {
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
-                isActive={location.pathname === item.path}
-                render={<Link onClick={handleMenuClick} to={item.path} />}
+                disabled={item.disabled}
+                isActive={item.path ? location.pathname === item.path : false}
+                render={
+                  item.path ? (
+                    <Link onClick={handleMenuClick} to={item.path} />
+                  ) : undefined
+                }
                 tooltip={item.title}
               >
                 <item.icon />

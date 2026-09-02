@@ -106,7 +106,7 @@ function DashboardSidebarMain({
       {
         title: "Need invitation",
         icon: Building2Icon,
-        path: "/onboarding",
+        disabled: true,
       },
     ];
   }
