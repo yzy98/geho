@@ -20,7 +20,7 @@
     }
   },
   "files": {
-    "includes": ["!**/routeTree.gen.ts"]
+    "includes": ["!**/routeTree.gen.ts", "!packages/db/drizzle"]
   },
   "overrides": [
     {
