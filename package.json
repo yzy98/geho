@@ -1,6 +1,6 @@
 {
   "name": "geho",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Open-source, self-hosted AI chatbots for company websites, with transparent RAG and bring-your-own LLM providers.",
@@ -17,13 +17,15 @@
   "packageManager": "pnpm@10.33.2",
   "license": "LGPL-3.0-or-later",
   "scripts": {
+    "setup": "node scripts/setup.js",
+    "test:setup": "vitest run scripts/setup-env.test.js",
     "dev": "turbo dev",
     "build": "turbo build",
     "typecheck": "turbo typecheck",
-    "test": "turbo test",
+    "test": "pnpm test:setup && turbo test",
     "check": "ultracite check",
     "fix": "ultracite fix",
-    "infra:up": "docker compose up -d",
+    "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down",
     "infra:restart": "docker compose down && docker compose up -d",
     "infra:ps": "docker compose ps",
@@ -36,11 +38,13 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.16",
+    "dotenv": "catalog:",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.7",
     "turbo": "^2.9.18",
     "typescript": "^6.0.3",
-    "ultracite": "7.8.3"
+    "ultracite": "7.8.3",
+    "vitest": "catalog:"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [

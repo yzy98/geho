@@ -216,9 +216,11 @@ function RetrievalPreviewResults({
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="font-medium text-sm">{chunk.sourceTitle}</span>
               <Badge variant="outline">Chunk {chunk.chunkIndex + 1}</Badge>
-              <Badge variant="secondary">
-                {Math.round(chunk.similarity * 100)}%
-              </Badge>
+              {chunk.vectorSimilarity === undefined ? null : (
+                <Badge variant="secondary">
+                  {Math.round(chunk.vectorSimilarity * 100)}% vector
+                </Badge>
+              )}
             </div>
 
             <div className="max-h-80 overflow-y-auto bg-muted/30 p-3">

@@ -6,6 +6,57 @@ Geho helps teams deploy an embeddable AI chatbot on their own infrastructure. Co
 
 Unlike closed chatbot SaaS tools, Geho is designed around control and inspectability: teams can see what documents were indexed, how they were chunked, which chunks were retrieved, what prompt was sent, which model answered, and which sources were cited.
 
+## Quick Start
+
+### Prerequisites
+
+- Git
+- Node.js and pnpm
+- A running Docker engine:
+  - macOS with Colima: `colima start`
+  - Or Docker Desktop: start Docker Desktop
+
+### Start Geho locally
+
+Clone the complete monorepo and install its locked dependencies:
+
+```bash
+git clone https://github.com/yzy98/geho.git
+cd geho
+pnpm install --frozen-lockfile
+```
+
+Start your Docker runtime before setup. For Colima on macOS:
+
+```bash
+colima start
+```
+
+Then initialize local services and start development:
+
+```bash
+pnpm setup
+pnpm dev
+```
+
+`pnpm setup` safely creates `.env` when it is missing, generates local
+development secrets only for placeholder values, starts PostgreSQL with
+pgvector and Redis through Docker Compose, verifies the infrastructure, and
+applies database migrations.
+
+Open <http://localhost:3000>, create your first account and organization, then
+configure a model provider, knowledge base, and chatbot.
+
+Press `Ctrl-C` to stop the Dashboard, API, and Worker. To stop PostgreSQL and
+Redis while keeping local data:
+
+```bash
+pnpm infra:down
+```
+
+> `pnpm setup` runs Docker Compose for you. Do not run `docker compose up`
+> separately unless you are troubleshooting the infrastructure.
+
 ## Why Geho?
 
 Many teams want an AI support chatbot, but do not want to send their knowledge base, model provider credentials, and customer conversations into a black-box SaaS product.
@@ -462,103 +513,3 @@ answer orchestration, and trace persistence. `packages/rag` contains the
 provider-agnostic RAG primitives—chunking, prompt preparation, and citation
 resolution—while `packages/ai` provides the model adapters. This keeps the
 pipeline transparent without hiding it behind a large framework.
-
-## Self-Hosting Goal
-
-The target setup should eventually be:
-
-```bash
-git clone https://github.com/yzy98/geho.git
-cd geho
-cp .env.example .env
-colima start
-pnpm infra:up
-pnpm infra:check
-pnpm dev
-```
-
-Then open:
-
-```txt
-http://localhost:3000
-```
-
-The local stack should include:
-
-```txt
-dashboard
-api
-worker
-postgres + pgvector
-redis
-```
-
-## Local Development Flow
-
-Geho uses Colima and Docker Compose for local infrastructure, while app code
-runs through pnpm and Turborepo on the host machine.
-
-```txt
-Colima / Docker Compose
-  -> PostgreSQL + pgvector
-  -> Redis
-
-pnpm / Turborepo
-  -> dashboard (Vite on localhost:3000)
-  -> api (Hono on localhost:4000)
-  -> worker
-  -> packages
-```
-
-The dashboard and API use a same-origin path contract:
-
-```txt
-/       -> dashboard
-/api/*  -> Hono API
-```
-
-During local development, the Vite development server proxies `/api` to the
-Hono API on `http://localhost:4000`. The dashboard calls relative `/api` URLs,
-including Better Auth at `/api/auth/*`, so authentication cookies remain
-same-origin and the browser client does not depend on cross-origin cookie
-configuration.
-
-In production, a reverse proxy or the self-host deployment serves the static
-dashboard and forwards `/api/*` to Hono under the same public origin.
-
-Start a development session:
-
-```bash
-colima start
-pnpm infra:up
-pnpm infra:check
-pnpm dev
-```
-
-Useful infrastructure commands:
-
-```bash
-pnpm infra:ps          # Show running containers
-pnpm infra:logs        # Follow infrastructure logs
-pnpm infra:postgres    # Open psql for the local Geho database
-pnpm infra:redis       # Open redis-cli
-pnpm infra:down        # Stop containers but keep local data
-```
-
-End a development session:
-
-```bash
-pnpm infra:down
-colima stop
-```
-
-Reset local infrastructure data only when you intentionally want to delete the
-local PostgreSQL and Redis volumes:
-
-```bash
-pnpm infra:reset:danger
-```
-
-Colima is the recommended local runtime for macOS development, but it is not a
-hard project dependency. Developers using Docker Desktop can still use the same
-`pnpm infra:*` scripts.
