@@ -200,9 +200,6 @@ function CitationItem({ citation }: { citation: AskChatbotPreviewCitation }) {
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium text-sm">{citation.sourceTitle}</span>
         <Badge variant="outline">Chunk {citation.chunkIndex + 1}</Badge>
-        <Badge variant="secondary">
-          {Math.round(citation.similarity * 100)}%
-        </Badge>
       </div>
       <p className="mt-1 break-all text-muted-foreground text-xs">
         {citation.chunkId}
