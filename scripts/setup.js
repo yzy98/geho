@@ -60,6 +60,7 @@ const main = async () => {
   }
 
   await run(pnpmCommand, ["infra:up"]);
+  await run(pnpmCommand, ["infra:check"]);
   await run(pnpmCommand, ["--filter", "@geho/db", "db:migrate"]);
 
   console.log(`

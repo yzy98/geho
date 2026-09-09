@@ -25,7 +25,7 @@
     "test": "pnpm test:setup && turbo test",
     "check": "ultracite check",
     "fix": "ultracite fix",
-    "infra:up": "docker compose up -d",
+    "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down",
     "infra:restart": "docker compose down && docker compose up -d",
     "infra:ps": "docker compose ps",
